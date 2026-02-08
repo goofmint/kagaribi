@@ -1,0 +1,22 @@
+{
+  "name": "kagaribi-example-basic",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx --import tsx/esm node_modules/@kagaribi/cli/src/bin.ts dev",
+    "serve:users": "tsx packages/users/serve.ts",
+    "serve:auth": "tsx packages/auth/serve.ts",
+    "serve:root": "tsx packages/root/serve.ts",
+    "demo:remote": "tsx scripts/demo-remote.ts"
+  },
+  "dependencies": {
+    "@kagaribi/core": "workspace:*",
+    "@kagaribi/cli": "workspace:*",
+    "@hono/node-server": "^1.0.0",
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.5.0"
+  }
+}

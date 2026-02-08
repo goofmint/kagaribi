@@ -1,0 +1,30 @@
+{
+  "name": "@kagaribi/cli",
+  "version": "0.1.0",
+  "description": "CLI tool for kagaribi microservices framework",
+  "type": "module",
+  "bin": {
+    "kagaribi": "./dist/bin.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/bin.ts src/index.ts --format esm --dts",
+    "dev": "tsup src/bin.ts src/index.ts --format esm --dts --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@kagaribi/core": "workspace:*",
+    "hono": "^4.0.0",
+    "@hono/node-server": "^1.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}
