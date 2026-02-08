@@ -14,7 +14,7 @@ function getEnvFlag(): string | undefined {
     return args[eqIdx].split('=')[1];
   }
   const flagIdx = args.indexOf('--env');
-  if (flagIdx !== -1 && args[flagIdx + 1]) {
+  if (flagIdx !== -1 && args[flagIdx + 1] && !args[flagIdx + 1].startsWith('-')) {
     return args[flagIdx + 1];
   }
   return undefined;

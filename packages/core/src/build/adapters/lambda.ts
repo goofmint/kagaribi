@@ -21,7 +21,7 @@ export const lambdaAdapter: BuildAdapter = {
   deployInstructions(group: BuildGroup): string {
     return [
       `Build: dist/${group.host.name}/index.js`,
-      `Deploy: zip dist/${group.host.name}/index.zip dist/${group.host.name}/index.js`,
+      `Deploy: cd dist/${group.host.name} && zip index.zip index.js`,
       `        aws lambda update-function-code --function-name ${group.host.name} --zip-file fileb://dist/${group.host.name}/index.zip`,
     ].join('\n  ');
   },

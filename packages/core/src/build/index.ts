@@ -74,7 +74,7 @@ async function buildGroup(
 
   // 2. アダプタのエントリーポイント生成
   const entryDir = resolve(plan.projectRoot, '.kagaribi', 'build', group.host.name);
-  const entryContent = adapter.generateEntry(group, './app.js');
+  const entryContent = adapter.generateEntry(group, './app.ts');
   const entryPath = resolve(entryDir, 'entry.ts');
   await writeFile(entryPath, entryContent, 'utf-8');
 

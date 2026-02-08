@@ -14,14 +14,14 @@ export const cloudflareAdapter: BuildAdapter = {
   },
 
   generateConfigs(group: BuildGroup): GeneratedFile[] {
-    const date = new Date().toISOString().split('T')[0];
+    const COMPATIBILITY_DATE = '2024-12-01';
     return [
       {
         filename: 'wrangler.toml',
         content: [
           `name = "${group.host.name}"`,
           `main = "index.js"`,
-          `compatibility_date = "${date}"`,
+          `compatibility_date = "${COMPATIBILITY_DATE}"`,
           '',
         ].join('\n'),
       },

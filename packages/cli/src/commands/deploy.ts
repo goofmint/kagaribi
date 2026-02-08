@@ -46,8 +46,12 @@ export async function deployCommand(options: DeployOptions): Promise<void> {
 
   for (const group of plan.groups) {
     // 特定パッケージが指定されている場合はフィルタ
-    if (options.packageName && group.host.name !== options.packageName) {
-      continue;
+    if (options.packageName) {
+      const isHost = group.host.name === options.packageName;
+      const isColocated = group.colocated.some((p) => p.name === options.packageName);
+      if (!isHost && !isColocated) {
+        continue;
+      }
     }
 
     const adapter = getAdapter(group.target);

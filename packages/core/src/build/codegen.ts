@@ -1,6 +1,6 @@
 import { resolve, relative } from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
-import type { ResolvedPackage } from '../types.js';
+import type { DeployTarget, ResolvedPackage } from '../types.js';
 import type { BuildGroup } from './adapters/types.js';
 
 /**
@@ -56,7 +56,7 @@ async function generateBuildClients(
 
   // リモートパッケージ登録
   for (const pkg of group.remotes) {
-    const urlExpr = toUrlExpr(pkg);
+    const urlExpr = toUrlExpr(pkg, group.target);
     lines.push(
       `registerRemoteClient({ name: '${pkg.name}', url: ${urlExpr} });`
     );
@@ -91,7 +91,7 @@ async function generateBuildApp(
   lines.push('');
 
   // clients.ts の副作用import
-  lines.push("import './clients.js';");
+  lines.push("import './clients.ts';");
   lines.push('');
 
   // ホストパッケージのimport
@@ -171,7 +171,7 @@ async function generateBuildApp(
 
   // リモートパッケージプロキシ
   for (const pkg of group.remotes) {
-    const urlExpr = toUrlExpr(pkg);
+    const urlExpr = toUrlExpr(pkg, group.target);
 
     // ネストルーティング対応
     if (pkg.definition.routes && pkg.definition.routes.length > 0) {
@@ -206,10 +206,12 @@ function toVarName(name: string): string {
 
 /**
  * 出力ディレクトリからソースファイルへの相対パスを生成する。
+ * .ts拡張子はそのまま維持し、パス区切りはPOSIX形式（/）に正規化する。
  */
 function toRelativeImport(from: string, to: string): string {
   let rel = relative(from, to);
-  rel = rel.replace(/\.ts$/, '.js');
+  // Windowsのバックスラッシュをスラッシュに変換
+  rel = rel.split('\\').join('/');
   if (!rel.startsWith('.')) {
     rel = './' + rel;
   }
@@ -237,12 +239,27 @@ function capitalize(str: string): string {
 
 /**
  * パッケージURLの式を生成する。
- * $ENV_VAR形式の場合はprocess.envを参照するコードにする。
+ * $ENV_VAR形式の場合はターゲットに応じた環境変数アクセスコードにする。
  */
-function toUrlExpr(pkg: ResolvedPackage): string {
+function toUrlExpr(pkg: ResolvedPackage, target: DeployTarget): string {
   const url = pkg.deploy.url ?? '';
   if (url.startsWith('$')) {
-    return `process.env.${url.slice(1)}!`;
+    const envName = url.slice(1);
+    switch (target) {
+      case 'deno':
+        return `Deno.env.get('${envName}')!`;
+      case 'cloudflare-workers':
+        // Cloudflare Workersではenv bindingsを使用する必要がある。
+        // ビルド時に静的URLが未確定の場合はエラー。
+        throw new Error(
+          `Environment variable \$${envName} cannot be resolved at build time for cloudflare-workers target. ` +
+          `Use a static URL or configure env bindings manually.`
+        );
+      case 'node':
+      case 'aws-lambda':
+      case 'google-cloud-run':
+        return `process.env.${envName}!`;
+    }
   }
   return `'${url}'`;
 }

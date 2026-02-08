@@ -20,8 +20,8 @@ export const denoAdapter: BuildAdapter = {
 
   deployInstructions(group: BuildGroup): string {
     return [
-      `Build: dist/${group.host.name}/index.ts`,
-      `Run:   deno run --allow-net --allow-env dist/${group.host.name}/index.ts`,
+      `Build: dist/${group.host.name}/index.js`,
+      `Run:   deno run --allow-net --allow-env dist/${group.host.name}/index.js`,
     ].join('\n  ');
   },
 };
