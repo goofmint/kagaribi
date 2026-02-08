@@ -21,5 +21,10 @@ export default defineConfig({
         '*': { colocateWith: 'root' },
       },
     },
+    production: {
+      packages: {
+        users: { target: 'aws-lambda', url: '$USERS_URL' },
+      },
+    },
   },
 });

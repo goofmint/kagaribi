@@ -40,3 +40,14 @@ export {
 
 // パスパラメータ伝播
 export { kagaribiParamsMiddleware } from './params.js';
+
+// ビルド
+export { buildProject } from './build/index.js';
+export { createBuildPlan } from './build/planner.js';
+export { getAdapter } from './build/adapters/index.js';
+export type {
+  BuildGroup,
+  BuildPlan,
+  BuildAdapter,
+  GeneratedFile,
+} from './build/adapters/types.js';
