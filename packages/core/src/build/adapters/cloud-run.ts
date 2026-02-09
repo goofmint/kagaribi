@@ -1,4 +1,5 @@
 import type { BuildAdapter, BuildGroup, GeneratedFile } from './types.js';
+import { exec } from '../exec.js';
 
 export const cloudRunAdapter: BuildAdapter = {
   target: 'google-cloud-run',
@@ -37,5 +38,29 @@ export const cloudRunAdapter: BuildAdapter = {
       `Build: dist/${group.host.name}/index.js`,
       `Deploy: cd dist/${group.host.name} && gcloud run deploy ${group.host.name} --source .`,
     ].join('\n  ');
+  },
+
+  async deploy(distDir: string, group: BuildGroup): Promise<string> {
+    const cwd = `${distDir}/${group.host.name}`;
+    const region = process.env.CLOUD_RUN_REGION ?? 'us-central1';
+
+    console.log(`  Deploying ${group.host.name} to Google Cloud Run (${region})...`);
+
+    const { stderr } = await exec('gcloud', [
+      'run', 'deploy', group.host.name,
+      '--source', '.',
+      '--region', region,
+      '--allow-unauthenticated',
+      '--quiet',
+    ], { cwd });
+
+    // gcloud outputs service URL to stderr
+    const urlMatch = stderr.match(/Service URL:\s+(https:\/\/[^\s]+)/);
+    if (!urlMatch) {
+      throw new Error(
+        `Failed to parse Service URL from gcloud output.\n${stderr}`
+      );
+    }
+    return urlMatch[1];
   },
 };

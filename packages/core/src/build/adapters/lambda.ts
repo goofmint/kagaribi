@@ -1,4 +1,5 @@
 import type { BuildAdapter, BuildGroup, GeneratedFile } from './types.js';
+import { exec } from '../exec.js';
 
 export const lambdaAdapter: BuildAdapter = {
   target: 'aws-lambda',
@@ -24,5 +25,51 @@ export const lambdaAdapter: BuildAdapter = {
       `Deploy: cd dist/${group.host.name} && zip index.zip index.js`,
       `        aws lambda update-function-code --function-name ${group.host.name} --zip-file fileb://dist/${group.host.name}/index.zip`,
     ].join('\n  ');
+  },
+
+  async deploy(distDir: string, group: BuildGroup): Promise<string> {
+    const cwd = `${distDir}/${group.host.name}`;
+    const functionName = group.host.name;
+
+    console.log(`  Deploying ${functionName} to AWS Lambda...`);
+
+    // 1. Create zip
+    await exec('zip', ['index.zip', 'index.js'], { cwd });
+
+    // 2. Update or create function
+    try {
+      await exec('aws', [
+        'lambda', 'update-function-code',
+        '--function-name', functionName,
+        '--zip-file', `fileb://${cwd}/index.zip`,
+      ], { cwd });
+    } catch {
+      await exec('aws', [
+        'lambda', 'create-function',
+        '--function-name', functionName,
+        '--runtime', 'nodejs20.x',
+        '--handler', 'index.handler',
+        '--zip-file', `fileb://${cwd}/index.zip`,
+        '--role', `arn:aws:iam::role/${functionName}-role`,
+      ], { cwd });
+    }
+
+    // 3. Get or create function URL
+    try {
+      const { stdout } = await exec('aws', [
+        'lambda', 'get-function-url-config',
+        '--function-name', functionName,
+      ], { cwd });
+      const parsed = JSON.parse(stdout) as { FunctionUrl: string };
+      return parsed.FunctionUrl;
+    } catch {
+      const { stdout } = await exec('aws', [
+        'lambda', 'create-function-url-config',
+        '--function-name', functionName,
+        '--auth-type', 'NONE',
+      ], { cwd });
+      const parsed = JSON.parse(stdout) as { FunctionUrl: string };
+      return parsed.FunctionUrl;
+    }
   },
 };

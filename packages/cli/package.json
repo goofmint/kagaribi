@@ -1,16 +1,41 @@
 {
   "name": "@kagaribi/cli",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "description": "CLI tool for kagaribi microservices framework",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "kagaribi": "./dist/bin.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./bin": "./dist/bin.js"
+  },
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/goofmint/kagaribi.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/goofmint/kagaribi",
+  "keywords": [
+    "hono",
+    "microservices",
+    "cli",
+    "deploy",
+    "cloudflare-workers",
+    "aws-lambda"
+  ],
+  "engines": {
+    "node": ">=22.6.0"
+  },
   "scripts": {
     "build": "tsup src/bin.ts src/index.ts --format esm --dts",
     "dev": "tsup src/bin.ts src/index.ts --format esm --dts --watch",

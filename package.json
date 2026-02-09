@@ -2,6 +2,7 @@
   "name": "kagaribi-monorepo",
   "private": true,
   "description": "A Hono-based microservices management framework",
+  "license": "MIT",
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",

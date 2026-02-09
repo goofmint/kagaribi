@@ -40,4 +40,6 @@ export interface BuildAdapter {
   generateConfigs(group: BuildGroup): GeneratedFile[];
   /** デプロイ手順の説明テキスト */
   deployInstructions(group: BuildGroup): string;
+  /** 実デプロイを実行し、デプロイ先URLを返す */
+  deploy(distDir: string, group: BuildGroup): Promise<string>;
 }

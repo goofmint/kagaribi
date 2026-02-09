@@ -41,6 +41,15 @@ export {
 // パスパラメータ伝播
 export { kagaribiParamsMiddleware } from './params.js';
 
+// プロジェクト初期化
+export { initProject } from './init.js';
+
+// スキャフォールド
+export { scaffoldPackage } from './scaffold.js';
+
+// config更新
+export { updateConfigAddPackage, updateConfigSetDeployResult } from './config-updater.js';
+
 // ビルド
 export { buildProject } from './build/index.js';
 export { createBuildPlan } from './build/planner.js';
@@ -51,3 +60,9 @@ export type {
   BuildAdapter,
   GeneratedFile,
 } from './build/adapters/types.js';
+
+// デプロイ
+export { deployProject } from './build/deploy.js';
+
+// シェル実行
+export { exec } from './build/exec.js';

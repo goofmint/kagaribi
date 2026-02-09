@@ -1,4 +1,5 @@
 import type { BuildAdapter, BuildGroup, GeneratedFile } from './types.js';
+import { exec } from '../exec.js';
 
 export const cloudflareAdapter: BuildAdapter = {
   target: 'cloudflare-workers',
@@ -33,5 +34,19 @@ export const cloudflareAdapter: BuildAdapter = {
       `Build: dist/${group.host.name}/index.js`,
       `Deploy: cd dist/${group.host.name} && wrangler deploy`,
     ].join('\n  ');
+  },
+
+  async deploy(distDir: string, group: BuildGroup): Promise<string> {
+    const cwd = `${distDir}/${group.host.name}`;
+    console.log(`  Deploying ${group.host.name} to Cloudflare Workers...`);
+    const { stdout } = await exec('wrangler', ['deploy'], { cwd });
+
+    const urlMatch = stdout.match(/https:\/\/[^\s]+\.workers\.dev/);
+    if (!urlMatch) {
+      throw new Error(
+        `Failed to parse deployed URL from wrangler output.\n${stdout}`
+      );
+    }
+    return urlMatch[0];
   },
 };

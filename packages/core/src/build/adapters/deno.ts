@@ -1,4 +1,5 @@
 import type { BuildAdapter, BuildGroup, GeneratedFile } from './types.js';
+import { exec } from '../exec.js';
 
 export const denoAdapter: BuildAdapter = {
   target: 'deno',
@@ -23,5 +24,25 @@ export const denoAdapter: BuildAdapter = {
       `Build: dist/${group.host.name}/index.js`,
       `Run:   deno run --allow-net --allow-env dist/${group.host.name}/index.js`,
     ].join('\n  ');
+  },
+
+  async deploy(distDir: string, group: BuildGroup): Promise<string> {
+    const cwd = `${distDir}/${group.host.name}`;
+
+    console.log(`  Deploying ${group.host.name} to Deno Deploy...`);
+
+    const { stdout } = await exec('deployctl', [
+      'deploy',
+      `--project=${group.host.name}`,
+      'index.js',
+    ], { cwd });
+
+    const urlMatch = stdout.match(/https:\/\/[^\s]+\.deno\.dev/);
+    if (!urlMatch) {
+      throw new Error(
+        `Failed to parse deployed URL from deployctl output.\n${stdout}`
+      );
+    }
+    return urlMatch[0];
   },
 };
