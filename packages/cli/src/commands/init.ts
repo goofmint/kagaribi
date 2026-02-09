@@ -37,6 +37,7 @@ export async function initCommand(options: InitCommandOptions): Promise<void> {
   // 依存インストールの確認
   const shouldInstall = await askYesNo('Install dependencies now? (pnpm install) [Y/n] ');
 
+  let installSucceeded = false;
   if (shouldInstall) {
     console.log('\nInstalling dependencies...\n');
     try {
@@ -45,13 +46,14 @@ export async function initCommand(options: InitCommandOptions): Promise<void> {
         console.log(result.stdout);
       }
       console.log('✓ Dependencies installed!\n');
+      installSucceeded = true;
     } catch (e) {
       console.error('Failed to install dependencies. Run "pnpm install" manually.\n');
     }
   }
 
   console.log(`Next steps:
-  cd ${name}${shouldInstall ? '' : '\n  pnpm install'}
+  cd ${name}${installSucceeded ? '' : '\n  pnpm install'}
   kagaribi dev
 
 Add a new package:

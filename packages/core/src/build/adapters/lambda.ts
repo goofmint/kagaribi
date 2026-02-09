@@ -44,32 +44,42 @@ export const lambdaAdapter: BuildAdapter = {
         '--zip-file', `fileb://${cwd}/index.zip`,
       ], { cwd });
     } catch {
+      const roleArn = process.env.AWS_LAMBDA_ROLE_ARN;
+      if (!roleArn) {
+        throw new Error(
+          'AWS_LAMBDA_ROLE_ARN environment variable is required to create a new Lambda function. '
+          + 'Format: arn:aws:iam::<account-id>:role/<role-name>'
+        );
+      }
       await exec('aws', [
         'lambda', 'create-function',
         '--function-name', functionName,
         '--runtime', 'nodejs20.x',
         '--handler', 'index.handler',
         '--zip-file', `fileb://${cwd}/index.zip`,
-        '--role', `arn:aws:iam::role/${functionName}-role`,
+        '--role', roleArn,
       ], { cwd });
     }
 
     // 3. Get or create function URL
+    const authType = process.env.LAMBDA_AUTH_TYPE === 'NONE' ? 'NONE' : 'AWS_IAM';
     try {
       const { stdout } = await exec('aws', [
         'lambda', 'get-function-url-config',
         '--function-name', functionName,
+        '--query', 'FunctionUrl',
+        '--output', 'text',
       ], { cwd });
-      const parsed = JSON.parse(stdout) as { FunctionUrl: string };
-      return parsed.FunctionUrl;
+      return stdout.trim();
     } catch {
       const { stdout } = await exec('aws', [
         'lambda', 'create-function-url-config',
         '--function-name', functionName,
-        '--auth-type', 'NONE',
+        '--auth-type', authType,
+        '--query', 'FunctionUrl',
+        '--output', 'text',
       ], { cwd });
-      const parsed = JSON.parse(stdout) as { FunctionUrl: string };
-      return parsed.FunctionUrl;
+      return stdout.trim();
     }
   },
 };

@@ -46,21 +46,31 @@ export const cloudRunAdapter: BuildAdapter = {
 
     console.log(`  Deploying ${group.host.name} to Google Cloud Run (${region})...`);
 
-    const { stderr } = await exec('gcloud', [
+    const deployArgs = [
       'run', 'deploy', group.host.name,
       '--source', '.',
       '--region', region,
-      '--allow-unauthenticated',
       '--quiet',
+    ];
+    if (process.env.CLOUD_RUN_ALLOW_UNAUTH === 'true') {
+      deployArgs.push('--allow-unauthenticated');
+    }
+
+    await exec('gcloud', deployArgs, { cwd });
+
+    // machine-readable な describe コマンドでService URLを取得
+    const { stdout: urlOut } = await exec('gcloud', [
+      'run', 'services', 'describe', group.host.name,
+      '--region', region,
+      '--format', 'value(status.url)',
     ], { cwd });
 
-    // gcloud outputs service URL to stderr
-    const urlMatch = stderr.match(/Service URL:\s+(https:\/\/[^\s]+)/);
-    if (!urlMatch) {
+    const url = urlOut.trim();
+    if (!url) {
       throw new Error(
-        `Failed to parse Service URL from gcloud output.\n${stderr}`
+        `Failed to retrieve Service URL for ${group.host.name}`
       );
     }
-    return urlMatch[1];
+    return url;
   },
 };

@@ -4,7 +4,7 @@ kagaribi is a Hono-based microservices framework that lets you develop packages 
 
 ## Prerequisites
 
-- Node.js >= 20
+- Node.js >= 22.6.0
 - pnpm
 
 ## Project Structure
@@ -28,7 +28,7 @@ my-project/
 
 ## CLI Commands
 
-### `kagaribi init <name> [--target]`
+### `kagaribi init <name> [target flag]`
 
 Initialize a new kagaribi project. Creates the project directory with all necessary files and a root package.
 
@@ -61,7 +61,7 @@ kagaribi dev        # http://localhost:3000
 kagaribi dev 8080   # http://localhost:8080
 ```
 
-### `kagaribi new <name> [--target]`
+### `kagaribi new <name> [target flag]`
 
 Create a new package with scaffolding files and update `kagaribi.config.ts`.
 
@@ -92,7 +92,7 @@ kagaribi build                  # Default environment
 kagaribi build --env production # Production environment
 ```
 
-### `kagaribi deploy [pkg] [--target] [--env name]`
+### `kagaribi deploy [pkg] [target flag] [--env name]`
 
 Deploy packages to their target platforms.
 

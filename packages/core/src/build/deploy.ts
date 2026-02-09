@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { stat } from 'node:fs/promises';
 import { scanPackages, resolvePackages } from '../scanner.js';
 import type { DeployTarget, KagaribiConfig, ResolvedPackage } from '../types.js';
@@ -157,6 +158,6 @@ function filterGroupsForDeploy(
  */
 async function loadConfig(projectRoot: string): Promise<KagaribiConfig> {
   const configPath = resolve(projectRoot, 'kagaribi.config.ts');
-  const module = await import(configPath);
+  const module = await import(pathToFileURL(configPath).href);
   return module.default ?? module;
 }

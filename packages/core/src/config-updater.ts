@@ -8,8 +8,8 @@ interface ConfigUpdateEntry {
 }
 
 /**
+ * 文字列リテラルやコメント内のブレースをスキップしながら
  * packages: { ... } ブロック内の開始・終了位置を特定する。
- * ブレースカウント方式で対応する閉じブレースを見つける。
  */
 function findPackagesBlock(content: string): { start: number; end: number } {
   const packagesIdx = content.indexOf('packages:');
@@ -25,8 +25,46 @@ function findPackagesBlock(content: string): { start: number; end: number } {
   let depth = 1;
   let i = openBrace + 1;
   while (i < content.length && depth > 0) {
-    if (content[i] === '{') depth++;
-    if (content[i] === '}') depth--;
+    const ch = content[i];
+
+    // 単一行コメント
+    if (ch === '/' && content[i + 1] === '/') {
+      const eol = content.indexOf('\n', i);
+      i = eol === -1 ? content.length : eol + 1;
+      continue;
+    }
+
+    // ブロックコメント
+    if (ch === '/' && content[i + 1] === '*') {
+      const end = content.indexOf('*/', i + 2);
+      i = end === -1 ? content.length : end + 2;
+      continue;
+    }
+
+    // 文字列リテラル（シングルクォート、ダブルクォート）
+    if (ch === "'" || ch === '"') {
+      i++;
+      while (i < content.length && content[i] !== ch) {
+        if (content[i] === '\\') i++; // エスケープをスキップ
+        i++;
+      }
+      i++; // 閉じクォートをスキップ
+      continue;
+    }
+
+    // テンプレートリテラル（バッククォート）
+    if (ch === '`') {
+      i++;
+      while (i < content.length && content[i] !== '`') {
+        if (content[i] === '\\') i++; // エスケープをスキップ
+        i++;
+      }
+      i++; // 閉じバッククォートをスキップ
+      continue;
+    }
+
+    if (ch === '{') depth++;
+    if (ch === '}') depth--;
     i++;
   }
 
@@ -44,6 +82,17 @@ function detectIndent(content: string, blockStart: number): string {
   const blockContent = content.slice(blockStart);
   const match = blockContent.match(/\n(\s+)\w/);
   return match ? match[1] : '    ';
+}
+
+/**
+ * パッケージ名をTSオブジェクトキーとしてフォーマットする。
+ * 識別子として有効でない名前（ハイフン含む等）はクォートで囲む。
+ */
+function formatObjectKey(name: string): string {
+  if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name)) {
+    return name;
+  }
+  return `'${name}'`;
 }
 
 /**
@@ -75,19 +124,24 @@ export async function updateConfigAddPackage(
 
   const { packageName, config } = entry;
 
-  // 既に存在するかチェック
-  const existingPattern = new RegExp(`\\b${escapeRegExp(packageName)}\\s*:`);
-  if (existingPattern.test(content)) {
+  // packages ブロック内のみで既存チェック
+  const { start, end } = findPackagesBlock(content);
+  const packagesBlock = content.slice(start, end);
+
+  const escapedKey = escapeRegExp(packageName);
+  // クォート有無両方にマッチ
+  const existingPattern = new RegExp(`(?:['"]${escapedKey}['"]|\\b${escapedKey})\\s*:`);
+  if (existingPattern.test(packagesBlock)) {
     throw new Error(
       `Package "${packageName}" already exists in kagaribi.config.ts`
     );
   }
 
-  const { end } = findPackagesBlock(content);
-  const indent = detectIndent(content, content.indexOf('{', content.indexOf('packages:')));
+  const indent = detectIndent(content, start);
 
+  const key = formatObjectKey(packageName);
   const configStr = configToString(config);
-  const newEntry = `${indent}${packageName}: ${configStr},\n`;
+  const newEntry = `${indent}${key}: ${configStr},\n`;
 
   // 閉じブレースの前に挿入
   const beforeClose = content.slice(0, end);
@@ -115,20 +169,26 @@ export async function updateConfigSetDeployResult(
 
   const config: PackageDeployConfig = { target, url };
   const configStr = configToString(config);
+  const key = formatObjectKey(packageName);
 
-  // 既存エントリのパターンマッチ
-  // packageName: { ... }, (改行含む)
+  // packages ブロック内のみで操作
+  const { start, end } = findPackagesBlock(content);
+  const packagesBlock = content.slice(start, end);
+
+  // 既存エントリのパターンマッチ（クォート有無両方に対応）
+  const escapedKey = escapeRegExp(packageName);
   const entryPattern = new RegExp(
-    `(\\s*)${escapeRegExp(packageName)}\\s*:\\s*\\{[^}]*\\}\\s*,?`
+    `(\\s*)(?:['"]${escapedKey}['"]|${escapedKey})\\s*:\\s*\\{[^}]*\\}\\s*,?`
   );
 
-  const match = content.match(entryPattern);
+  const match = packagesBlock.match(entryPattern);
 
   if (match) {
-    // 既存エントリを置換
+    // packages ブロック内で置換
     const indent = match[1];
-    const replacement = `${indent}${packageName}: ${configStr},`;
-    const updated = content.replace(entryPattern, replacement);
+    const replacement = `${indent}${key}: ${configStr},`;
+    const updatedBlock = packagesBlock.replace(entryPattern, replacement);
+    const updated = content.slice(0, start) + updatedBlock + content.slice(end);
     await writeFile(configPath, updated, 'utf-8');
   } else {
     // エントリが存在しない場合は追加

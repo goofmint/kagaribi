@@ -89,11 +89,11 @@ switch (command) {
     console.log(`kagaribi - Hono-based microservices framework
 
 Usage:
-  kagaribi init <name> [--target]               Initialize a new project
+  kagaribi init <name> [target flag]             Initialize a new project
   kagaribi dev [port]                           Start development server (default: 3000)
   kagaribi build [--env name]                   Build for deployment
-  kagaribi new <name> [--target]                Create a new package
-  kagaribi deploy [pkg] [--target] [--env]      Deploy packages
+  kagaribi new <name> [target flag]              Create a new package
+  kagaribi deploy [pkg] [target flag] [--env]   Deploy packages
 
 Target flags:
   --cloudflare    Cloudflare Workers
