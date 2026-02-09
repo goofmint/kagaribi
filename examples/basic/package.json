@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx --import tsx/esm node_modules/@kagaribi/cli/src/bin.ts dev",
+    "dev": "kagaribi dev",
     "serve:users": "tsx packages/users/serve.ts",
     "serve:auth": "tsx packages/auth/serve.ts",
     "serve:root": "tsx packages/root/serve.ts",

@@ -1,4 +1,5 @@
 import type { BuildAdapter, BuildGroup, GeneratedFile } from './types.js';
+// Node.jsターゲットは自動デプロイ非対応
 
 export const nodeAdapter: BuildAdapter = {
   target: 'node',
@@ -25,5 +26,12 @@ export const nodeAdapter: BuildAdapter = {
       `Build: dist/${group.host.name}/index.js`,
       `Run:   PORT=3000 node dist/${group.host.name}/index.js`,
     ].join('\n  ');
+  },
+
+  async deploy(_distDir: string, _group: BuildGroup): Promise<string> {
+    throw new Error(
+      'Node target does not support automated deployment. ' +
+      'Use "node dist/<name>/index.js" to run locally, or deploy manually to your server.'
+    );
   },
 };

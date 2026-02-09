@@ -1,4 +1,5 @@
 import type { BuildAdapter, BuildGroup, GeneratedFile } from './types.js';
+import { exec } from '../exec.js';
 
 export const lambdaAdapter: BuildAdapter = {
   target: 'aws-lambda',
@@ -24,5 +25,61 @@ export const lambdaAdapter: BuildAdapter = {
       `Deploy: cd dist/${group.host.name} && zip index.zip index.js`,
       `        aws lambda update-function-code --function-name ${group.host.name} --zip-file fileb://dist/${group.host.name}/index.zip`,
     ].join('\n  ');
+  },
+
+  async deploy(distDir: string, group: BuildGroup): Promise<string> {
+    const cwd = `${distDir}/${group.host.name}`;
+    const functionName = group.host.name;
+
+    console.log(`  Deploying ${functionName} to AWS Lambda...`);
+
+    // 1. Create zip
+    await exec('zip', ['index.zip', 'index.js'], { cwd });
+
+    // 2. Update or create function
+    try {
+      await exec('aws', [
+        'lambda', 'update-function-code',
+        '--function-name', functionName,
+        '--zip-file', `fileb://${cwd}/index.zip`,
+      ], { cwd });
+    } catch {
+      const roleArn = process.env.AWS_LAMBDA_ROLE_ARN;
+      if (!roleArn) {
+        throw new Error(
+          'AWS_LAMBDA_ROLE_ARN environment variable is required to create a new Lambda function. '
+          + 'Format: arn:aws:iam::<account-id>:role/<role-name>'
+        );
+      }
+      await exec('aws', [
+        'lambda', 'create-function',
+        '--function-name', functionName,
+        '--runtime', 'nodejs20.x',
+        '--handler', 'index.handler',
+        '--zip-file', `fileb://${cwd}/index.zip`,
+        '--role', roleArn,
+      ], { cwd });
+    }
+
+    // 3. Get or create function URL
+    const authType = process.env.LAMBDA_AUTH_TYPE === 'NONE' ? 'NONE' : 'AWS_IAM';
+    try {
+      const { stdout } = await exec('aws', [
+        'lambda', 'get-function-url-config',
+        '--function-name', functionName,
+        '--query', 'FunctionUrl',
+        '--output', 'text',
+      ], { cwd });
+      return stdout.trim();
+    } catch {
+      const { stdout } = await exec('aws', [
+        'lambda', 'create-function-url-config',
+        '--function-name', functionName,
+        '--auth-type', authType,
+        '--query', 'FunctionUrl',
+        '--output', 'text',
+      ], { cwd });
+      return stdout.trim();
+    }
   },
 };

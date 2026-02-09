@@ -1,4 +1,5 @@
 import type { BuildAdapter, BuildGroup, GeneratedFile } from './types.js';
+import { exec } from '../exec.js';
 
 export const cloudRunAdapter: BuildAdapter = {
   target: 'google-cloud-run',
@@ -37,5 +38,39 @@ export const cloudRunAdapter: BuildAdapter = {
       `Build: dist/${group.host.name}/index.js`,
       `Deploy: cd dist/${group.host.name} && gcloud run deploy ${group.host.name} --source .`,
     ].join('\n  ');
+  },
+
+  async deploy(distDir: string, group: BuildGroup): Promise<string> {
+    const cwd = `${distDir}/${group.host.name}`;
+    const region = process.env.CLOUD_RUN_REGION ?? 'us-central1';
+
+    console.log(`  Deploying ${group.host.name} to Google Cloud Run (${region})...`);
+
+    const deployArgs = [
+      'run', 'deploy', group.host.name,
+      '--source', '.',
+      '--region', region,
+      '--quiet',
+    ];
+    if (process.env.CLOUD_RUN_ALLOW_UNAUTH === 'true') {
+      deployArgs.push('--allow-unauthenticated');
+    }
+
+    await exec('gcloud', deployArgs, { cwd });
+
+    // machine-readable な describe コマンドでService URLを取得
+    const { stdout: urlOut } = await exec('gcloud', [
+      'run', 'services', 'describe', group.host.name,
+      '--region', region,
+      '--format', 'value(status.url)',
+    ], { cwd });
+
+    const url = urlOut.trim();
+    if (!url) {
+      throw new Error(
+        `Failed to retrieve Service URL for ${group.host.name}`
+      );
+    }
+    return url;
   },
 };

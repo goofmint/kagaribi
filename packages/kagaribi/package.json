@@ -1,0 +1,32 @@
+{
+  "name": "kagaribi",
+  "version": "0.1.4",
+  "description": "Hono-based microservices framework - CLI wrapper",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "kagaribi": "./bin.js"
+  },
+  "files": [
+    "bin.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/goofmint/kagaribi.git",
+    "directory": "packages/kagaribi"
+  },
+  "homepage": "https://github.com/goofmint/kagaribi",
+  "keywords": [
+    "hono",
+    "microservices",
+    "monorepo",
+    "serverless",
+    "cli"
+  ],
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "dependencies": {
+    "@kagaribi/cli": "workspace:*"
+  }
+}
