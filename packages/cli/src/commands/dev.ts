@@ -1,4 +1,4 @@
-import { readdir, stat } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
@@ -24,9 +24,36 @@ interface LoadedPackage {
  * 同時に各パッケージをクライアントレジストリに登録し、
  * getClient() でパッケージ間呼び出しが可能な状態にする。
  */
+/**
+ * .env ファイルを読み込んで process.env に設定する。
+ * 既に設定されている環境変数は上書きしない。
+ */
+async function loadEnvFile(cwd: string): Promise<void> {
+  try {
+    const content = await readFile(join(cwd, '.env'), 'utf-8');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIndex = trimmed.indexOf('=');
+      if (eqIndex === -1) continue;
+      const key = trimmed.slice(0, eqIndex).trim();
+      const value = trimmed.slice(eqIndex + 1).trim();
+      if (process.env[key] === undefined) {
+        process.env[key] = value;
+      }
+    }
+  } catch {
+    // .env がなければスキップ
+  }
+}
+
 export async function devServer(options: DevServerOptions = {}): Promise<void> {
   const port = options.port ?? 3000;
   const cwd = process.cwd();
+
+  // .env ファイルを読み込み（DB接続文字列等）
+  await loadEnvFile(cwd);
+
   const packagesDir = options.packagesDir ?? join(cwd, 'packages');
 
   console.log('[kagaribi] Scanning packages...');

@@ -1,7 +1,14 @@
 import { resolve } from 'node:path';
 import { mkdir, writeFile, stat } from 'node:fs/promises';
 import { scaffoldPackage } from './scaffold.js';
-import type { DeployTarget } from './types.js';
+import type { DbDialect, DeployTarget } from './types.js';
+import {
+  getDbDependencies,
+  generateDbSchema,
+  generateDbIndex,
+  generateDrizzleConfig,
+  generateEnvExample,
+} from './db.js';
 
 interface InitOptions {
   /** プロジェクトを作成する親ディレクトリ */
@@ -10,6 +17,8 @@ interface InitOptions {
   name: string;
   /** rootパッケージのデプロイターゲット（デフォルト: 'node'） */
   target?: DeployTarget;
+  /** データベース方言（指定しない場合はDB無し） */
+  db?: DbDialect;
 }
 
 /**
@@ -30,26 +39,45 @@ function validateProjectName(name: string): void {
 /**
  * package.json テンプレートを生成する。
  */
-function generatePackageJson(name: string): string {
+function generatePackageJson(name: string, db?: DbDialect): string {
+  const baseDeps: Record<string, string> = {
+    '@kagaribi/core': '^0.1.0',
+    '@kagaribi/cli': '^0.1.0',
+    '@hono/node-server': '^1.0.0',
+    hono: '^4.0.0',
+  };
+  const baseDevDeps: Record<string, string> = {
+    typescript: '^5.5.0',
+  };
+
+  if (db) {
+    const dbDeps = getDbDependencies(db);
+    Object.assign(baseDeps, dbDeps.deps);
+    Object.assign(baseDevDeps, dbDeps.devDeps);
+  }
+
+  const scripts: Record<string, string> = {
+    dev: 'kagaribi dev',
+  };
+
+  if (db) {
+    scripts['build:db'] = 'tsc db/index.ts db/schema.ts --outDir db --module ES2022 --target ES2022 --moduleResolution bundler --skipLibCheck';
+    scripts.dev = 'pnpm run build:db && kagaribi dev';
+    scripts['db:generate'] = 'drizzle-kit generate';
+    scripts['db:migrate'] = 'drizzle-kit migrate';
+    scripts['db:studio'] = 'drizzle-kit studio';
+  }
+
   const pkg = {
     name,
     private: true,
     type: 'module',
-    scripts: {
-      dev: 'kagaribi dev',
-    },
-    dependencies: {
-      '@kagaribi/core': '^0.1.0',
-      '@kagaribi/cli': '^0.1.0',
-      '@hono/node-server': '^1.0.0',
-      hono: '^4.0.0',
-    },
+    scripts,
+    dependencies: baseDeps,
     engines: {
       node: '>=22.6.0',
     },
-    devDependencies: {
-      typescript: '^5.5.0',
-    },
+    devDependencies: baseDevDeps,
   };
   return JSON.stringify(pkg, null, 2) + '\n';
 }
@@ -57,7 +85,11 @@ function generatePackageJson(name: string): string {
 /**
  * kagaribi.config.ts テンプレートを生成する。
  */
-function generateConfig(target: DeployTarget): string {
+function generateConfig(target: DeployTarget, db?: DbDialect): string {
+  const dbSection = db
+    ? `\n  db: {\n    dialect: '${db}',\n  },`
+    : '';
+
   return `import { defineConfig } from '@kagaribi/core';
 
 export default defineConfig({
@@ -65,7 +97,7 @@ export default defineConfig({
     root: {
       target: '${target}',
     },
-  },
+  },${dbSection}
   environments: {
     development: {
       packages: {
@@ -80,7 +112,8 @@ export default defineConfig({
 /**
  * tsconfig.json テンプレートを生成する。
  */
-function generateTsConfig(): string {
+function generateTsConfig(db?: DbDialect): string {
+  const include = db ? ['packages', 'db'] : ['packages'];
   const config = {
     compilerOptions: {
       target: 'ES2022',
@@ -91,7 +124,7 @@ function generateTsConfig(): string {
       noEmit: true,
       skipLibCheck: true,
     },
-    include: ['packages'],
+    include,
   };
   return JSON.stringify(config, null, 2) + '\n';
 }
@@ -99,11 +132,18 @@ function generateTsConfig(): string {
 /**
  * .gitignore テンプレートを生成する。
  */
-function generateGitignore(): string {
-  return `node_modules/
+function generateGitignore(db?: DbDialect): string {
+  const base = `node_modules/
 dist/
 .kagaribi/
 `;
+  if (db) {
+    return base + `.env
+drizzle/
+db/*.js
+`;
+  }
+  return base;
 }
 
 /**
@@ -133,7 +173,7 @@ export default app;
  * @returns 作成されたプロジェクトディレクトリの絶対パス
  */
 export async function initProject(options: InitOptions): Promise<string> {
-  const { parentDir, name, target = 'node' } = options;
+  const { parentDir, name, target = 'node', db } = options;
 
   validateProjectName(name);
 
@@ -154,12 +194,31 @@ export async function initProject(options: InitOptions): Promise<string> {
   await mkdir(projectDir, { recursive: true });
 
   // ルートレベルのファイルを並列生成
-  await Promise.all([
-    writeFile(resolve(projectDir, 'package.json'), generatePackageJson(name), 'utf-8'),
-    writeFile(resolve(projectDir, 'kagaribi.config.ts'), generateConfig(target), 'utf-8'),
-    writeFile(resolve(projectDir, 'tsconfig.json'), generateTsConfig(), 'utf-8'),
-    writeFile(resolve(projectDir, '.gitignore'), generateGitignore(), 'utf-8'),
-  ]);
+  const rootFiles: Promise<void>[] = [
+    writeFile(resolve(projectDir, 'package.json'), generatePackageJson(name, db), 'utf-8'),
+    writeFile(resolve(projectDir, 'kagaribi.config.ts'), generateConfig(target, db), 'utf-8'),
+    writeFile(resolve(projectDir, 'tsconfig.json'), generateTsConfig(db), 'utf-8'),
+    writeFile(resolve(projectDir, '.gitignore'), generateGitignore(db), 'utf-8'),
+  ];
+
+  if (db) {
+    rootFiles.push(
+      writeFile(resolve(projectDir, 'drizzle.config.ts'), generateDrizzleConfig(db), 'utf-8'),
+      writeFile(resolve(projectDir, '.env.example'), generateEnvExample(db), 'utf-8'),
+    );
+  }
+
+  await Promise.all(rootFiles);
+
+  // DB ディレクトリとファイルを生成
+  if (db) {
+    const dbDir = resolve(projectDir, 'db');
+    await mkdir(dbDir, { recursive: true });
+    await Promise.all([
+      writeFile(resolve(dbDir, 'schema.ts'), generateDbSchema(db), 'utf-8'),
+      writeFile(resolve(dbDir, 'index.ts'), generateDbIndex(db), 'utf-8'),
+    ]);
+  }
 
   // rootパッケージをスキャフォールド（既存関数を再利用）
   await scaffoldPackage({ projectRoot: projectDir, name: 'root' });

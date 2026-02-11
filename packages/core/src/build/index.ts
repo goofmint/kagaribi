@@ -7,6 +7,7 @@ import { createBuildPlan } from './planner.js';
 import { generateBuildCode } from './codegen.js';
 import { getAdapter } from './adapters/index.js';
 import { bundlePackage } from './bundler.js';
+import { getDbExternals } from '../db.js';
 
 interface BuildProjectOptions {
   /** プロジェクトルートパス */
@@ -43,8 +44,9 @@ export async function buildProject(options: BuildProjectOptions): Promise<void> 
   console.log(`Building ${plan.groups.length} group(s) for "${plan.environment}" environment...`);
 
   // 4. 各グループを並列ビルド
+  const dbExternals = config.db ? getDbExternals(config.db.dialect) : [];
   await Promise.all(
-    plan.groups.map((group) => buildGroup(group, plan, outDir))
+    plan.groups.map((group) => buildGroup(group, plan, outDir, dbExternals))
   );
 
   console.log(`Build completed! Output: ${outDir}`);
@@ -56,7 +58,8 @@ export async function buildProject(options: BuildProjectOptions): Promise<void> 
 async function buildGroup(
   group: BuildGroup,
   plan: BuildPlan,
-  outDir: string
+  outDir: string,
+  dbExternals: string[] = []
 ): Promise<void> {
   const groupOutDir = resolve(outDir, group.host.name);
   await mkdir(groupOutDir, { recursive: true });
@@ -83,6 +86,7 @@ async function buildGroup(
     entryPoint: entryPath,
     outfile: resolve(groupOutDir, 'index.js'),
     target: group.target,
+    external: dbExternals.length > 0 ? dbExternals : undefined,
   });
 
   // 4. 追加設定ファイル（wrangler.toml, Dockerfile等）を出力

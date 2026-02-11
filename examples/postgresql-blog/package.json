@@ -1,0 +1,25 @@
+{
+  "name": "kagaribi-example-postgresql-blog",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:db": "tsc db/index.ts db/schema.ts --outDir db --module ES2022 --target ES2022 --moduleResolution bundler --skipLibCheck",
+    "dev": "pnpm run build:db && kagaribi dev",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@kagaribi/core": "workspace:*",
+    "@kagaribi/cli": "workspace:*",
+    "@hono/node-server": "^1.0.0",
+    "hono": "^4.0.0",
+    "drizzle-orm": "^0.38.0",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "drizzle-kit": "^0.30.0",
+    "@types/pg": "^8.11.0"
+  }
+}
