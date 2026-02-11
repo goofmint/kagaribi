@@ -125,8 +125,22 @@ switch (command) {
         console.error('Usage: kagaribi model new <table-name> [field:type ...] [--db postgresql|mysql]');
         process.exit(1);
       }
-      // Extract field definitions (excluding --db flags)
-      const fieldArgs = args.slice(3).filter((arg) => !arg.startsWith('--db'));
+      // Extract field definitions (excluding --db flags and their values)
+      const fieldArgs: string[] = [];
+      const startIndex = 3;
+      for (let i = startIndex; i < args.length; i++) {
+        const arg = args[i];
+        if (arg === '--db') {
+          // Skip --db and its value (next element)
+          i++;
+          continue;
+        }
+        if (arg.startsWith('--db=')) {
+          // Skip --db=value form
+          continue;
+        }
+        fieldArgs.push(arg);
+      }
       const db = getDbFlag();
       await modelNewCommand({ name: tableName, fields: fieldArgs, db });
     } else {
