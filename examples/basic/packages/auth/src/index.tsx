@@ -6,7 +6,13 @@ const app = new Hono();
 app
   // API: Login endpoint
   .post('/api/login', async (c) => {
-    const body = await c.req.json<{ username: string; password: string }>();
+    let body: { username: string; password: string };
+
+    try {
+      body = await c.req.json<{ username: string; password: string }>();
+    } catch (error) {
+      return c.json({ error: 'Invalid JSON' }, 400);
+    }
 
     // Sample: Return fixed token
     if (body.username === 'admin' && body.password === 'password') {

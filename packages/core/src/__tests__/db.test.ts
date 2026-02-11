@@ -98,10 +98,14 @@ describe('generateEnvExample', () => {
 
 describe('getDbExternals', () => {
   it('postgresql: pg, pg-native を返す', () => {
-    expect(getDbExternals('postgresql')).toEqual(['pg', 'pg-native']);
+    const result = getDbExternals('postgresql');
+    expect(result).toHaveLength(2);
+    expect(result).toEqual(expect.arrayContaining(['pg', 'pg-native']));
   });
 
   it('mysql: mysql2 を返す', () => {
-    expect(getDbExternals('mysql')).toEqual(['mysql2']);
+    const result = getDbExternals('mysql');
+    expect(result).toHaveLength(1);
+    expect(result).toEqual(expect.arrayContaining(['mysql2']));
   });
 });

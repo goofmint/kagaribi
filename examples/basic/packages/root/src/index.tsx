@@ -9,8 +9,8 @@ import { DashboardPage } from './views/DashboardPage.js';
 const app = new Hono();
 
 /**
- * jsxRenderer ミドルウェアを使用して共有レイアウトを設定
- * すべてのビューで自動的に RootLayout が適用される
+ * Use jsxRenderer middleware to set up shared layout
+ * RootLayout is automatically applied to all views
  */
 app.use(
   '*',
@@ -20,13 +20,13 @@ app.use(
 );
 
 app
-  // ホームページ
-  // c.render() を使用すると、jsxRenderer で設定したレイアウトが自動適用される
+  // Homepage
+  // c.render() automatically applies jsxRenderer layout
   .get('/', (c) => {
     return c.render(<HomePage />);
   })
 
-  // ヘルスチェックAPI
+  // Health check API
   .get('/health', (c) => {
     return c.json({ status: 'healthy', package: 'root' });
   })
@@ -46,14 +46,14 @@ app
     // 1. Get users package client
     const users = getClient<UsersApp>('users');
 
-    // 2. Fetch UI component from users package
+    // 2. Fetch JSON data from users package API
     // @ts-expect-error - Workaround for getClient type inference issue
-    const userListRes = await users.view.list.$get();
-    const userListHtml = await userListRes.text();
+    const userDataRes = await users.api.users.$get();
+    const { users: userList } = await userDataRes.json();
 
-    // 3. Pass props to view component and render
+    // 3. Pass data to view component and render
     // RootLayout is automatically applied via c.render()
-    return c.render(<DashboardPage userListHtml={userListHtml} />);
+    return c.render(<DashboardPage users={userList} />);
   });
 
 export type RootApp = typeof app;

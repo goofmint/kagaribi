@@ -71,4 +71,4 @@ const routes = app
   });
 
 export type ArticlesApp = typeof routes;
-export default app;
+export default routes;
