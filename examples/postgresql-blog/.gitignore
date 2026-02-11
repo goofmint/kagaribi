@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.kagaribi/
+.env
+drizzle/
+db/*.js

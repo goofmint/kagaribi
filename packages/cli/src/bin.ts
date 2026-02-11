@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 export {};
 
-import type { DeployTarget } from '@kagaribi/core';
+import type { DbDialect, DeployTarget } from '@kagaribi/core';
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -19,6 +19,36 @@ function getEnvFlag(): string | undefined {
   if (flagIdx !== -1 && args[flagIdx + 1] && !args[flagIdx + 1].startsWith('-')) {
     return args[flagIdx + 1];
   }
+  return undefined;
+}
+
+/**
+ * --db フラグの値を取得する。
+ * 形式: --db postgresql, --db=mysql
+ */
+function getDbFlag(): DbDialect | undefined {
+  const validDialects: DbDialect[] = ['postgresql', 'mysql'];
+
+  const eqIdx = args.findIndex((a) => a.startsWith('--db='));
+  if (eqIdx !== -1) {
+    const value = args[eqIdx].split('=')[1];
+    if (validDialects.includes(value as DbDialect)) {
+      return value as DbDialect;
+    }
+    console.error(`Invalid --db value: "${value}". Valid options: ${validDialects.join(', ')}`);
+    process.exit(1);
+  }
+
+  const flagIdx = args.indexOf('--db');
+  if (flagIdx !== -1 && args[flagIdx + 1] && !args[flagIdx + 1].startsWith('-')) {
+    const value = args[flagIdx + 1];
+    if (validDialects.includes(value as DbDialect)) {
+      return value as DbDialect;
+    }
+    console.error(`Invalid --db value: "${value}". Valid options: ${validDialects.join(', ')}`);
+    process.exit(1);
+  }
+
   return undefined;
 }
 
@@ -47,11 +77,12 @@ switch (command) {
     const { initCommand } = await import('./commands/init.js');
     const name = args[1];
     if (!name || name.startsWith('--')) {
-      console.error('Usage: kagaribi init <project-name> [--node|--cloudflare|--lambda|--cloudrun|--deno]');
+      console.error('Usage: kagaribi init <project-name> [--node|--cloudflare|--lambda|--cloudrun|--deno] [--db postgresql|mysql]');
       process.exit(1);
     }
     const target = getTargetFlag();
-    await initCommand({ name, target });
+    const db = getDbFlag();
+    await initCommand({ name, target, db });
     break;
   }
   case 'dev': {
@@ -89,11 +120,11 @@ switch (command) {
     console.log(`kagaribi - Hono-based microservices framework
 
 Usage:
-  kagaribi init <name> [target flag]             Initialize a new project
-  kagaribi dev [port]                           Start development server (default: 3000)
-  kagaribi build [--env name]                   Build for deployment
-  kagaribi new <name> [target flag]              Create a new package
-  kagaribi deploy [pkg] [target flag] [--env]   Deploy packages
+  kagaribi init <name> [target flag] [--db dialect]  Initialize a new project
+  kagaribi dev [port]                                Start development server (default: 3000)
+  kagaribi build [--env name]                        Build for deployment
+  kagaribi new <name> [target flag]                   Create a new package
+  kagaribi deploy [pkg] [target flag] [--env]        Deploy packages
 
 Target flags:
   --cloudflare    Cloudflare Workers
@@ -103,6 +134,7 @@ Target flags:
   --deno          Deno Deploy
 
 Options:
+  --db <dialect>  Add database support (postgresql, mysql)
   --env <name>    Specify environment
   --dry-run       Show deploy instructions without executing
   --help          Show help

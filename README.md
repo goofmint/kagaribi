@@ -10,6 +10,7 @@ A Hono-based microservices framework for monorepos. Develop packages locally in 
 - **Co-location** - Run all packages in a single process during development, split in production
 - **Nested routing** - Cross-package path patterns like `/users/:userId/articles`
 - **WebComponent UI** - Each package can serve both API and UI
+- **Database support** - Built-in Drizzle ORM integration with PostgreSQL/MySQL
 
 ## Quick Start
 
@@ -20,6 +21,22 @@ cd my-project
 
 # Start the development server
 kagaribi dev
+```
+
+### With Database Support
+
+```bash
+# Create a project with PostgreSQL
+kagaribi init my-blog --db postgresql
+cd my-blog
+
+# Configure database connection
+cp .env.example .env
+# Edit .env with your DATABASE_URL
+
+# Run migrations and start
+pnpm run db:migrate
+pnpm run dev
 ```
 
 ## Adding Packages

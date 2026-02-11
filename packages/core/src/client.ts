@@ -65,7 +65,8 @@ export function registerRemoteClient(
  * const res = await auth.api.verify.$get();
  * ```
  */
-export function getClient<T extends Hono>(name: string): ReturnType<typeof hc<T>> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getClient<T extends Hono<any, any, any>>(name: string): ReturnType<typeof hc<T>> {
   const client = clientRegistry.get(name);
   if (!client) {
     throw new Error(

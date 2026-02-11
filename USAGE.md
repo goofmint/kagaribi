@@ -28,7 +28,7 @@ my-project/
 
 ## CLI Commands
 
-### `kagaribi init <name> [target flag]`
+### `kagaribi init <name> [target flag] [--db dialect]`
 
 Initialize a new kagaribi project. Creates the project directory with all necessary files and a root package.
 
@@ -39,6 +39,10 @@ kagaribi init my-project
 # Create a project with a specific root target
 kagaribi init my-project --cloudflare
 kagaribi init my-project --node
+
+# Create a project with database support
+kagaribi init my-project --db postgresql
+kagaribi init my-project --db mysql
 ```
 
 This generates:
@@ -49,6 +53,13 @@ This generates:
 - `.gitignore` - Ignore patterns (node_modules, dist, .kagaribi)
 - `packages/root/kagaribi.package.ts` - Root package manifest
 - `packages/root/src/index.ts` - Minimal Hono app with `GET /` and `GET /health`
+
+**With `--db` flag:**
+- `db/schema.ts` - Drizzle ORM schema definition
+- `db/index.ts` - Database connection helper
+- `drizzle.config.ts` - Drizzle Kit configuration
+- `.env.example` - Example environment variables
+- Additional scripts in `package.json`: `build:db`, `db:generate`, `db:migrate`, `db:studio`
 
 After creation, you'll be prompted to install dependencies with `pnpm install`.
 
@@ -256,6 +267,140 @@ dist/
     Dockerfile        # (Cloud Run only)
   users/
     index.js
+```
+
+## Database Support
+
+kagaribi supports PostgreSQL and MySQL via Drizzle ORM. Initialize a project with `--db` to automatically set up database infrastructure.
+
+### Quick Start with Database
+
+```bash
+# Create a project with PostgreSQL support
+kagaribi init my-blog --db postgresql
+cd my-blog
+
+# Set up your database connection
+cp .env.example .env
+# Edit .env and add your DATABASE_URL
+
+# Generate and run migrations
+pnpm run db:generate
+pnpm run db:migrate
+
+# Start development server (automatically builds db/)
+pnpm run dev
+```
+
+### Database Helper (`createDbHelper`)
+
+The generated `db/index.ts` uses `createDbHelper` from `@kagaribi/core` to manage database connections:
+
+```typescript
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { createDbHelper } from '@kagaribi/core';
+import * as schema from './schema.js';
+
+const { initDb, getDb } = createDbHelper((url) => drizzle(url, { schema }));
+
+export { initDb, getDb, schema };
+```
+
+**Key features:**
+- Singleton pattern prevents duplicate connections
+- Type-safe database access
+- Works with any Drizzle ORM driver (node-postgres, neon, postgres.js, etc.)
+
+### Database Middleware (`createDbMiddleware`)
+
+Use `createDbMiddleware` to automatically initialize the database from environment variables:
+
+```typescript
+import { Hono } from 'hono';
+import { createDbMiddleware } from '@kagaribi/core';
+import { getDb, initDb } from '../../../db/index.js';
+
+const app = new Hono()
+  .use('*', createDbMiddleware({ initFn: initDb }))
+  .get('/', async (c) => {
+    const db = getDb();
+    const users = await db.select().from(schema.users);
+    return c.json(users);
+  });
+```
+
+**The middleware automatically:**
+- Detects Node.js environment and reads `process.env.DATABASE_URL`
+- Detects Cloudflare Workers environment and reads `c.env.DATABASE_URL`
+- Calls your `initDb` function with the detected URL
+- Ensures idempotent initialization (won't re-initialize if already done)
+
+### Available Scripts
+
+When a project is created with `--db`, the following npm scripts are added:
+
+| Script | Description |
+|--------|-------------|
+| `build:db` | Compile `db/*.ts` to `db/*.js` for runtime |
+| `dev` | Build db and start development server |
+| `db:generate` | Generate migration files from schema |
+| `db:migrate` | Apply migrations to database |
+| `db:studio` | Open Drizzle Studio (GUI for database) |
+
+### Example: Adding a New Table
+
+1. Edit `db/schema.ts`:
+```typescript
+import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+
+export const posts = pgTable('posts', {
+  id: serial('id').primaryKey(),
+  title: text('title').notNull(),
+  content: text('content'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+```
+
+2. Generate and apply migration:
+```bash
+pnpm run db:generate
+pnpm run db:migrate
+```
+
+3. Use in your package:
+```typescript
+import { getDb, schema } from '../../../db/index.js';
+
+app.get('/posts', async (c) => {
+  const db = getDb();
+  const allPosts = await db.select().from(schema.posts);
+  return c.json(allPosts);
+});
+```
+
+### Cloudflare Workers Support
+
+For Cloudflare Workers, use a serverless-compatible driver:
+
+```typescript
+// db/index.ts
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import { createDbHelper } from '@kagaribi/core';
+import * as schema from './schema.js';
+
+const { initDb, getDb } = createDbHelper((url) => {
+  const sql = neon(url);
+  return drizzle(sql, { schema });
+});
+
+export { initDb, getDb, schema };
+```
+
+Don't forget to add the Neon packages:
+```bash
+pnpm add @neondatabase/serverless
+pnpm add -D drizzle-orm
 ```
 
 ## Environment Variables

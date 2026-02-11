@@ -10,6 +10,7 @@ Honoベースのマイクロサービス管理フレームワーク。モノレ�
 - **co-location** - 開発時は全パッケージを単一プロセスで実行、本番は必要に応じて分離
 - **ネストルーティング** - `/users/:userId/articles` のようなパッケージ横断パスパターン対応
 - **WebComponent UI** - 各パッケージがAPI + UIの両方を提供可能
+- **データベースサポート** - Drizzle ORMによるPostgreSQL/MySQL統合機能を内蔵
 
 ## 必要環境
 
@@ -26,6 +27,9 @@ kagaribi init my-project
 
 # ターゲット指定で作成
 kagaribi init my-project --cloudflare
+
+# データベース付きで作成（PostgreSQL）
+kagaribi init my-blog --db postgresql
 ```
 
 以下の構造が自動生成されます:
@@ -218,6 +222,83 @@ app.get('/', (c) => {
   return c.json({ userId, articles: [] });
 });
 ```
+
+## データベースサポート
+
+`--db` フラグでプロジェクトを作成すると、Drizzle ORMによるデータベースサポートが自動セットアップされます。
+
+### データベース付きプロジェクトの作成
+
+```bash
+# PostgreSQLプロジェクトを作成
+kagaribi init my-blog --db postgresql
+cd my-blog
+
+# データベース接続を設定
+cp .env.example .env
+# .env を編集して DATABASE_URL を追加
+
+# マイグレーション実行と開発サーバー起動
+pnpm run db:migrate
+pnpm run dev
+```
+
+### 自動生成されるファイル
+
+- `db/schema.ts` - Drizzle ORMスキーマ定義
+- `db/index.ts` - データベース接続ヘルパー
+- `drizzle.config.ts` - Drizzle Kit設定
+- `.env.example` - 環境変数サンプル
+
+### 利用可能なスクリプト
+
+| スクリプト | 説明 |
+|-----------|------|
+| `build:db` | `db/*.ts` を `db/*.js` にコンパイル |
+| `dev` | dbをビルドして開発サーバー起動 |
+| `db:generate` | スキーマからマイグレーションファイル生成 |
+| `db:migrate` | マイグレーションをデータベースに適用 |
+| `db:studio` | Drizzle Studio（DBのGUI）を起動 |
+
+### データベース接続ヘルパー
+
+`createDbHelper` を使ってシングルトンパターンで接続を管理：
+
+```typescript
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { createDbHelper } from '@kagaribi/core';
+import * as schema from './schema.js';
+
+const { initDb, getDb } = createDbHelper((url) => drizzle(url, { schema }));
+
+export { initDb, getDb, schema };
+```
+
+### データベースミドルウェア
+
+`createDbMiddleware` で環境に応じた自動初期化：
+
+```typescript
+import { Hono } from 'hono';
+import { createDbMiddleware } from '@kagaribi/core';
+import { getDb, initDb, schema } from '../../../db/index.js';
+
+const app = new Hono()
+  .use('*', createDbMiddleware({ initFn: initDb }))
+  .get('/', async (c) => {
+    const db = getDb();
+    // データベース操作
+    const data = await db.select().from(schema.posts);
+    return c.json({ data });
+  });
+```
+
+**ミドルウェアが自動的に:**
+- Node.js環境では `process.env.DATABASE_URL` を読み込み
+- Cloudflare Workers環境では `c.env.DATABASE_URL` を読み込み
+- 冪等な初期化（重複初期化を防止）
+
+詳細は [Usage Guide](./USAGE.md) を参照してください。
 
 ## ビルド出力
 

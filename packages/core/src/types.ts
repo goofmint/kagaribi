@@ -8,6 +8,9 @@ export type DeployTarget =
   | 'node'
   | 'deno';
 
+/** 対応するデータベース方言 */
+export type DbDialect = 'postgresql' | 'mysql';
+
 /** パッケージマニフェスト定義 */
 export interface PackageDefinition {
   /** パッケージの一意な名前 */
@@ -51,6 +54,10 @@ export interface KagaribiConfig {
   packages: Record<string, PackageDeployConfig>;
   /** 環境別のオーバーライド設定 */
   environments?: Record<string, EnvironmentConfig>;
+  /** データベース設定 */
+  db?: {
+    dialect: DbDialect;
+  };
 }
 
 /** 解決済みパッケージ情報（ビルド時に使用） */

@@ -162,4 +162,136 @@ describe('initProject', () => {
       initProject({ parentDir: tempDir, name: '123app' })
     ).rejects.toThrow('Invalid project name');
   });
+
+  describe('--db postgresql', () => {
+    it('DB関連ファイルが生成される', async () => {
+      const projectDir = await initProject({
+        parentDir: tempDir,
+        name: 'db-app',
+        db: 'postgresql',
+      });
+
+      // db/ ディレクトリ
+      const dbDirStat = await stat(resolve(projectDir, 'db'));
+      expect(dbDirStat.isDirectory()).toBe(true);
+
+      // db/schema.ts
+      const schema = await readFile(resolve(projectDir, 'db', 'schema.ts'), 'utf-8');
+      expect(schema).toContain('pgTable');
+      expect(schema).toContain('posts');
+
+      // db/index.ts
+      const index = await readFile(resolve(projectDir, 'db', 'index.ts'), 'utf-8');
+      expect(index).toContain('getDb');
+      expect(index).toContain('node-postgres');
+
+      // drizzle.config.ts
+      const drizzleConfig = await readFile(resolve(projectDir, 'drizzle.config.ts'), 'utf-8');
+      expect(drizzleConfig).toContain("dialect: 'postgresql'");
+
+      // .env.example
+      const envExample = await readFile(resolve(projectDir, '.env.example'), 'utf-8');
+      expect(envExample).toContain('DATABASE_URL=postgresql://');
+    });
+
+    it('package.json に DB 依存関係が含まれる', async () => {
+      const projectDir = await initProject({
+        parentDir: tempDir,
+        name: 'db-app2',
+        db: 'postgresql',
+      });
+
+      const content = await readFile(resolve(projectDir, 'package.json'), 'utf-8');
+      const pkg = JSON.parse(content);
+
+      expect(pkg.dependencies['drizzle-orm']).toBeDefined();
+      expect(pkg.dependencies.pg).toBeDefined();
+      expect(pkg.devDependencies['drizzle-kit']).toBeDefined();
+      expect(pkg.devDependencies['@types/pg']).toBeDefined();
+      expect(pkg.scripts['db:generate']).toBe('drizzle-kit generate');
+      expect(pkg.scripts['db:migrate']).toBe('drizzle-kit migrate');
+      expect(pkg.scripts['db:studio']).toBe('drizzle-kit studio');
+    });
+
+    it('kagaribi.config.ts に db セクションが含まれる', async () => {
+      const projectDir = await initProject({
+        parentDir: tempDir,
+        name: 'db-app3',
+        db: 'postgresql',
+      });
+
+      const content = await readFile(resolve(projectDir, 'kagaribi.config.ts'), 'utf-8');
+      expect(content).toContain("dialect: 'postgresql'");
+    });
+
+    it('tsconfig.json の include に db が含まれる', async () => {
+      const projectDir = await initProject({
+        parentDir: tempDir,
+        name: 'db-app4',
+        db: 'postgresql',
+      });
+
+      const content = await readFile(resolve(projectDir, 'tsconfig.json'), 'utf-8');
+      const tsconfig = JSON.parse(content);
+      expect(tsconfig.include).toContain('db');
+    });
+
+    it('.gitignore に .env と drizzle/ が含まれる', async () => {
+      const projectDir = await initProject({
+        parentDir: tempDir,
+        name: 'db-app5',
+        db: 'postgresql',
+      });
+
+      const content = await readFile(resolve(projectDir, '.gitignore'), 'utf-8');
+      expect(content).toContain('.env');
+      expect(content).toContain('drizzle/');
+    });
+  });
+
+  describe('--db mysql', () => {
+    it('MySQL 用の DB ファイルが生成される', async () => {
+      const projectDir = await initProject({
+        parentDir: tempDir,
+        name: 'mysql-app',
+        db: 'mysql',
+      });
+
+      const schema = await readFile(resolve(projectDir, 'db', 'schema.ts'), 'utf-8');
+      expect(schema).toContain('mysqlTable');
+
+      const index = await readFile(resolve(projectDir, 'db', 'index.ts'), 'utf-8');
+      expect(index).toContain('mysql2');
+
+      const pkg = JSON.parse(
+        await readFile(resolve(projectDir, 'package.json'), 'utf-8')
+      );
+      expect(pkg.dependencies.mysql2).toBeDefined();
+    });
+  });
+
+  it('db未指定の場合 DB ファイルが生成されない', async () => {
+    const projectDir = await initProject({
+      parentDir: tempDir,
+      name: 'no-db-app',
+    });
+
+    const dbDirExists = await stat(resolve(projectDir, 'db'))
+      .then(() => true)
+      .catch(() => false);
+    expect(dbDirExists).toBe(false);
+
+    const drizzleConfigExists = await stat(resolve(projectDir, 'drizzle.config.ts'))
+      .then(() => true)
+      .catch(() => false);
+    expect(drizzleConfigExists).toBe(false);
+
+    const content = await readFile(resolve(projectDir, 'kagaribi.config.ts'), 'utf-8');
+    expect(content).not.toContain('db:');
+
+    const tsconfig = JSON.parse(
+      await readFile(resolve(projectDir, 'tsconfig.json'), 'utf-8')
+    );
+    expect(tsconfig.include).not.toContain('db');
+  });
 });

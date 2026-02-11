@@ -3,6 +3,7 @@ export { defineConfig, definePackage } from './define.js';
 
 // 型
 export type {
+  DbDialect,
   DeployTarget,
   PackageDefinition,
   PackageDeployConfig,
@@ -63,6 +64,23 @@ export type {
 
 // デプロイ
 export { deployProject } from './build/deploy.js';
+
+// DB テンプレート
+export {
+  getDbDependencies,
+  generateDbSchema,
+  generateDbIndex,
+  generateDrizzleConfig,
+  generateEnvExample,
+  getDbExternals,
+} from './db.js';
+
+// DB ミドルウェア
+export { createDbMiddleware } from './db-middleware.js';
+export type { DbMiddlewareOptions } from './db-middleware.js';
+
+// DB ヘルパー
+export { createDbHelper } from './db-helper.js';
 
 // シェル実行
 export { exec } from './build/exec.js';

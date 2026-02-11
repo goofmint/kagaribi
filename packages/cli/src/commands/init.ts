@@ -1,10 +1,11 @@
 import { createInterface } from 'node:readline/promises';
 import { initProject, exec } from '@kagaribi/core';
-import type { DeployTarget } from '@kagaribi/core';
+import type { DbDialect, DeployTarget } from '@kagaribi/core';
 
 interface InitCommandOptions {
   name: string;
   target?: DeployTarget;
+  db?: DbDialect;
 }
 
 /**
@@ -27,10 +28,10 @@ async function askYesNo(question: string): Promise<boolean> {
 }
 
 export async function initCommand(options: InitCommandOptions): Promise<void> {
-  const { name, target } = options;
+  const { name, target, db } = options;
   const parentDir = process.cwd();
 
-  const projectDir = await initProject({ parentDir, name, target });
+  const projectDir = await initProject({ parentDir, name, target, db });
 
   console.log(`\n✓ Project "${name}" created at ${projectDir}\n`);
 
@@ -52,10 +53,19 @@ export async function initCommand(options: InitCommandOptions): Promise<void> {
     }
   }
 
+  const dbSteps = db
+    ? `
+Set up database:
+  cp .env.example .env       # Edit DATABASE_URL
+  npx drizzle-kit generate   # Generate migrations
+  npx drizzle-kit migrate    # Run migrations
+`
+    : '';
+
   console.log(`Next steps:
   cd ${name}${installSucceeded ? '' : '\n  pnpm install'}
   kagaribi dev
-
+${dbSteps}
 Add a new package:
   kagaribi new <name>
 `);
