@@ -281,13 +281,14 @@ export { initDb, getDb, schema };
 ```typescript
 import { Hono } from 'hono';
 import { createDbMiddleware } from '@kagaribi/core';
-import { getDb, initDb } from '../../../db/index.js';
+import { getDb, initDb, schema } from '../../../db/index.js';
 
 const app = new Hono()
   .use('*', createDbMiddleware({ initFn: initDb }))
   .get('/', async (c) => {
     const db = getDb();
     // データベース操作
+    const data = await db.select().from(schema.posts);
     return c.json({ data });
   });
 ```
