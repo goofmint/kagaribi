@@ -84,3 +84,17 @@ export { createDbHelper } from './db-helper.js';
 
 // シェル実行
 export { exec } from './build/exec.js';
+
+// モデル生成
+export {
+  getColumnDefinition,
+  generateTableDefinition,
+  appendModelToSchema,
+  parseFieldDefinitions,
+  detectDbDialect,
+  generateModelHelper,
+  writeModelHelper,
+  updateModelIndex,
+  SUPPORTED_FIELD_TYPES,
+} from './model.js';
+export type { SupportedFieldType, FieldDefinition, TableDefinition } from './model.js';
