@@ -116,6 +116,46 @@ switch (command) {
     await deployCommand({ packageName, env: getEnvFlag(), target, dryRun });
     break;
   }
+  case 'model': {
+    const subcommand = args[1];
+    if (subcommand === 'new') {
+      const { modelNewCommand } = await import('./commands/model.js');
+      const tableName = args[2];
+      if (!tableName || tableName.startsWith('--')) {
+        console.error('Usage: kagaribi model new <table-name> [field:type ...] [--db postgresql|mysql]');
+        process.exit(1);
+      }
+      // Extract field definitions (excluding --db flags and their values)
+      const fieldArgs: string[] = [];
+      const startIndex = 3;
+      for (let i = startIndex; i < args.length; i++) {
+        const arg = args[i];
+        if (arg === '--db') {
+          // Verify that the next token exists and is not another flag
+          const nextArg = args[i + 1];
+          if (!nextArg || nextArg.startsWith('-')) {
+            console.error('Error: --db flag requires a value (postgresql or mysql)');
+            console.error('Usage: kagaribi model new <table-name> [field:type ...] [--db postgresql|mysql]');
+            process.exit(1);
+          }
+          // Skip --db and its value (next element)
+          i++;
+          continue;
+        }
+        if (arg.startsWith('--db=')) {
+          // Skip --db=value form
+          continue;
+        }
+        fieldArgs.push(arg);
+      }
+      const db = getDbFlag();
+      await modelNewCommand({ name: tableName, fields: fieldArgs, db });
+    } else {
+      console.error('Usage: kagaribi model new <table-name> [field:type ...]');
+      process.exit(1);
+    }
+    break;
+  }
   default:
     console.log(`kagaribi - Hono-based microservices framework
 
@@ -124,6 +164,7 @@ Usage:
   kagaribi dev [port]                                Start development server (default: 3000)
   kagaribi build [--env name]                        Build for deployment
   kagaribi new <name> [target flag]                   Create a new package
+  kagaribi model new <table> [field:type ...]        Generate a new model
   kagaribi deploy [pkg] [target flag] [--env]        Deploy packages
 
 Target flags:

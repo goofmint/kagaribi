@@ -1,24 +1,19 @@
 import { Hono } from 'hono';
-import { eq } from 'drizzle-orm';
 import { createDbMiddleware } from '@kagaribi/core';
-import { getDb, initDb, schema } from '../../../db/index.js';
+import { initDb } from '../../../db/index.js';
+import * as Posts from '../../../db/models/posts.js';
 
 const app = new Hono()
   .use('*', createDbMiddleware({ initFn: initDb }))
   // 投稿一覧
   .get('/', async (c) => {
-    const db = getDb();
-    const allPosts = await db.select().from(schema.posts);
+    const allPosts = await Posts.findAll();
     return c.json(allPosts);
   })
   // 投稿取得
   .get('/:id', async (c) => {
-    const db = getDb();
     const id = Number(c.req.param('id'));
-    const [post] = await db
-      .select()
-      .from(schema.posts)
-      .where(eq(schema.posts.id, id));
+    const post = await Posts.findById(id);
     if (!post) {
       return c.json({ error: 'Not found' }, 404);
     }
@@ -26,22 +21,17 @@ const app = new Hono()
   })
   // 投稿作成
   .post('/', async (c) => {
-    const db = getDb();
     const body = await c.req.json<{ title: string; content?: string }>();
-    const [created] = await db
-      .insert(schema.posts)
-      .values({ title: body.title, content: body.content ?? null })
-      .returning();
+    const created = await Posts.create({
+      title: body.title,
+      content: body.content ?? null,
+    });
     return c.json(created, 201);
   })
   // 投稿削除
   .delete('/:id', async (c) => {
-    const db = getDb();
     const id = Number(c.req.param('id'));
-    const [deleted] = await db
-      .delete(schema.posts)
-      .where(eq(schema.posts.id, id))
-      .returning();
+    const deleted = await Posts.remove(id);
     if (!deleted) {
       return c.json({ error: 'Not found' }, 404);
     }
