@@ -47,5 +47,11 @@ export async function bundlePackage(options: BundleOptions): Promise<void> {
     minify: false,
     treeShaking: true,
     external: options.external,
+    loader: {
+      '.tsx': 'tsx',
+      '.jsx': 'jsx',
+    },
+    jsx: 'automatic',
+    jsxImportSource: 'hono/jsx',
   });
 }

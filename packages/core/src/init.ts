@@ -123,6 +123,8 @@ function generateTsConfig(db?: DbDialect): string {
       strict: true,
       noEmit: true,
       skipLibCheck: true,
+      jsx: 'react-jsx',
+      jsxImportSource: 'hono/jsx',
     },
     include,
   };

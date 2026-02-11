@@ -37,15 +37,16 @@
     "node": ">=22.6.0"
   },
   "scripts": {
-    "build": "tsup src/bin.ts src/index.ts --format esm --dts",
-    "dev": "tsup src/bin.ts src/index.ts --format esm --dts --watch",
+    "build": "tsup src/bin.ts src/index.ts --format esm --dts --external esbuild",
+    "dev": "tsup src/bin.ts src/index.ts --format esm --dts --watch --external esbuild",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@kagaribi/core": "workspace:*",
     "hono": "^4.0.0",
-    "@hono/node-server": "^1.0.0"
+    "@hono/node-server": "^1.0.0",
+    "esbuild": "^0.24.0"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

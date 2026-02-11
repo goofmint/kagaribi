@@ -1,9 +1,11 @@
-import { readFile, readdir, stat } from 'node:fs/promises';
+import { readFile, readdir, stat, mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { registerLocalClient, kagaribiParamsMiddleware } from '@kagaribi/core';
 import type { PackageDefinition } from '@kagaribi/core';
+import { build } from 'esbuild';
 
 interface DevServerOptions {
   port?: number;
@@ -24,6 +26,42 @@ interface LoadedPackage {
  * 同時に各パッケージをクライアントレジストリに登録し、
  * getClient() でパッケージ間呼び出しが可能な状態にする。
  */
+/**
+ * .tsx/.ts ファイルをコンパイルして、実行可能な.jsファイルパスを返す。
+ * .tsファイルの場合はそのまま返す（Node.jsが直接読み込める場合）。
+ */
+async function compileIfNeeded(srcPath: string, projectRoot: string): Promise<string> {
+  // .tsx の場合のみコンパイルが必要
+  if (!srcPath.endsWith('.tsx')) {
+    return srcPath;
+  }
+
+  // プロジェクトディレクトリ内の .kagaribi/compiled にコンパイル
+  const tempDir = join(projectRoot, '.kagaribi', 'compiled');
+  await mkdir(tempDir, { recursive: true });
+
+  const hash = Buffer.from(srcPath).toString('base64').replace(/[/+=]/g, '_');
+  const outFile = join(tempDir, `${hash}.js`);
+
+  await build({
+    entryPoints: [srcPath],
+    format: 'esm',
+    outfile: outFile,
+    bundle: true,
+    platform: 'node',
+    target: 'node20',
+    jsx: 'automatic',
+    jsxImportSource: 'hono/jsx',
+    loader: {
+      '.tsx': 'tsx',
+      '.ts': 'ts',
+    },
+    external: ['node:*', '@kagaribi/core'],
+  });
+
+  return outFile;
+}
+
 /**
  * .env ファイルを読み込んで process.env に設定する。
  * 既に設定されている環境変数は上書きしない。
@@ -81,16 +119,27 @@ export async function devServer(options: DevServerOptions = {}): Promise<void> {
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     const pkgDir = resolve(packagesDir, entry.name);
-    const srcIndex = join(pkgDir, 'src', 'index.ts');
 
-    const exists = await stat(srcIndex)
+    // Try .tsx first, then .ts
+    let srcIndex = join(pkgDir, 'src', 'index.tsx');
+    let exists = await stat(srcIndex)
       .then((s) => s.isFile())
       .catch(() => false);
 
+    if (!exists) {
+      srcIndex = join(pkgDir, 'src', 'index.ts');
+      exists = await stat(srcIndex)
+        .then((s) => s.isFile())
+        .catch(() => false);
+    }
+
     if (!exists) continue;
 
+    // .tsx ファイルの場合はコンパイルしてから読み込む
+    const compiledPath = await compileIfNeeded(srcIndex, cwd);
+
     // 動的インポートでパッケージのHonoアプリを読み込む
-    const mod = await import(srcIndex);
+    const mod = await import(compiledPath);
     const pkgApp = mod.default ?? mod.app;
 
     if (!pkgApp) {
