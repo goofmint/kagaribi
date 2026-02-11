@@ -131,6 +131,13 @@ switch (command) {
       for (let i = startIndex; i < args.length; i++) {
         const arg = args[i];
         if (arg === '--db') {
+          // Verify that the next token exists and is not another flag
+          const nextArg = args[i + 1];
+          if (!nextArg || nextArg.startsWith('-')) {
+            console.error('Error: --db flag requires a value (postgresql or mysql)');
+            console.error('Usage: kagaribi model new <table-name> [field:type ...] [--db postgresql|mysql]');
+            process.exit(1);
+          }
           // Skip --db and its value (next element)
           i++;
           continue;
