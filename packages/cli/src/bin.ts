@@ -72,92 +72,93 @@ function getTargetFlag(): DeployTarget | undefined {
   return undefined;
 }
 
-switch (command) {
-  case 'init': {
-    const { initCommand } = await import('./commands/init.js');
-    const name = args[1];
-    if (!name || name.startsWith('--')) {
-      console.error('Usage: kagaribi init <project-name> [--node|--cloudflare|--lambda|--cloudrun|--deno] [--db postgresql|mysql]');
-      process.exit(1);
-    }
-    const target = getTargetFlag();
-    const db = getDbFlag();
-    await initCommand({ name, target, db });
-    break;
-  }
-  case 'dev': {
-    const { devServer } = await import('./commands/dev.js');
-    const port = parseInt(args[1] ?? '3000', 10);
-    await devServer({ port });
-    break;
-  }
-  case 'build': {
-    const { buildCommand } = await import('./commands/build.js');
-    await buildCommand({ env: getEnvFlag() });
-    break;
-  }
-  case 'new': {
-    const { newCommand } = await import('./commands/new.js');
-    const name = args[1];
-    if (!name || name.startsWith('--')) {
-      console.error('Usage: kagaribi new <name> [--cloudflare|--lambda|--cloudrun|--node|--deno]');
-      process.exit(1);
-    }
-    const target = getTargetFlag();
-    await newCommand({ name, target });
-    break;
-  }
-  case 'deploy': {
-    const { deployCommand } = await import('./commands/deploy.js');
-    // kagaribi deploy [packageName] [--target] [--env name] [--dry-run]
-    const packageName = args[1] && !args[1].startsWith('--') ? args[1] : undefined;
-    const target = getTargetFlag();
-    const dryRun = args.includes('--dry-run');
-    await deployCommand({ packageName, env: getEnvFlag(), target, dryRun });
-    break;
-  }
-  case 'model': {
-    const subcommand = args[1];
-    if (subcommand === 'new') {
-      const { modelNewCommand } = await import('./commands/model.js');
-      const tableName = args[2];
-      if (!tableName || tableName.startsWith('--')) {
-        console.error('Usage: kagaribi model new <table-name> [field:type ...] [--db postgresql|mysql]');
+(async () => {
+  switch (command) {
+    case 'init': {
+      const { initCommand } = await import('./commands/init.js');
+      const name = args[1];
+      if (!name || name.startsWith('--')) {
+        console.error('Usage: kagaribi init <project-name> [--node|--cloudflare|--lambda|--cloudrun|--deno] [--db postgresql|mysql]');
         process.exit(1);
       }
-      // Extract field definitions (excluding --db flags and their values)
-      const fieldArgs: string[] = [];
-      const startIndex = 3;
-      for (let i = startIndex; i < args.length; i++) {
-        const arg = args[i];
-        if (arg === '--db') {
-          // Verify that the next token exists and is not another flag
-          const nextArg = args[i + 1];
-          if (!nextArg || nextArg.startsWith('-')) {
-            console.error('Error: --db flag requires a value (postgresql or mysql)');
-            console.error('Usage: kagaribi model new <table-name> [field:type ...] [--db postgresql|mysql]');
-            process.exit(1);
-          }
-          // Skip --db and its value (next element)
-          i++;
-          continue;
-        }
-        if (arg.startsWith('--db=')) {
-          // Skip --db=value form
-          continue;
-        }
-        fieldArgs.push(arg);
-      }
+      const target = getTargetFlag();
       const db = getDbFlag();
-      await modelNewCommand({ name: tableName, fields: fieldArgs, db });
-    } else {
-      console.error('Usage: kagaribi model new <table-name> [field:type ...]');
-      process.exit(1);
+      await initCommand({ name, target, db });
+      break;
     }
-    break;
-  }
-  default:
-    console.log(`kagaribi - Hono-based microservices framework
+    case 'dev': {
+      const { devServer } = await import('./commands/dev.js');
+      const port = parseInt(args[1] ?? '3000', 10);
+      await devServer({ port });
+      break;
+    }
+    case 'build': {
+      const { buildCommand } = await import('./commands/build.js');
+      await buildCommand({ env: getEnvFlag() });
+      break;
+    }
+    case 'new': {
+      const { newCommand } = await import('./commands/new.js');
+      const name = args[1];
+      if (!name || name.startsWith('--')) {
+        console.error('Usage: kagaribi new <name> [--cloudflare|--lambda|--cloudrun|--node|--deno]');
+        process.exit(1);
+      }
+      const target = getTargetFlag();
+      await newCommand({ name, target });
+      break;
+    }
+    case 'deploy': {
+      const { deployCommand } = await import('./commands/deploy.js');
+      // kagaribi deploy [packageName] [--target] [--env name] [--dry-run]
+      const packageName = args[1] && !args[1].startsWith('--') ? args[1] : undefined;
+      const target = getTargetFlag();
+      const dryRun = args.includes('--dry-run');
+      await deployCommand({ packageName, env: getEnvFlag(), target, dryRun });
+      break;
+    }
+    case 'model': {
+      const subcommand = args[1];
+      if (subcommand === 'new') {
+        const { modelNewCommand } = await import('./commands/model.js');
+        const tableName = args[2];
+        if (!tableName || tableName.startsWith('--')) {
+          console.error('Usage: kagaribi model new <table-name> [field:type ...] [--db postgresql|mysql]');
+          process.exit(1);
+        }
+        // Extract field definitions (excluding --db flags and their values)
+        const fieldArgs: string[] = [];
+        const startIndex = 3;
+        for (let i = startIndex; i < args.length; i++) {
+          const arg = args[i];
+          if (arg === '--db') {
+            // Verify that the next token exists and is not another flag
+            const nextArg = args[i + 1];
+            if (!nextArg || nextArg.startsWith('-')) {
+              console.error('Error: --db flag requires a value (postgresql or mysql)');
+              console.error('Usage: kagaribi model new <table-name> [field:type ...] [--db postgresql|mysql]');
+              process.exit(1);
+            }
+            // Skip --db and its value (next element)
+            i++;
+            continue;
+          }
+          if (arg.startsWith('--db=')) {
+            // Skip --db=value form
+            continue;
+          }
+          fieldArgs.push(arg);
+        }
+        const db = getDbFlag();
+        await modelNewCommand({ name: tableName, fields: fieldArgs, db });
+      } else {
+        console.error('Usage: kagaribi model new <table-name> [field:type ...]');
+        process.exit(1);
+      }
+      break;
+    }
+    default:
+      console.log(`kagaribi - Hono-based microservices framework
 
 Usage:
   kagaribi init <name> [target flag] [--db dialect]  Initialize a new project
@@ -180,5 +181,9 @@ Options:
   --dry-run       Show deploy instructions without executing
   --help          Show help
 `);
-    break;
-}
+      break;
+  }
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
