@@ -74,7 +74,7 @@ export async function createPost(data: { title: string; content?: string }) {
 }
 
 // Update post
-export async function updatePost(id: number, data: Partial<typeof data>) {
+export async function updatePost(id: number, data: Partial<typeof posts.$inferInsert>) {
   const db = getDb();
   const [post] = await db.update(posts).set(data).where(eq(posts.id, id)).returning();
   return post;

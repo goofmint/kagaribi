@@ -198,6 +198,19 @@ export async function initProject(options: InitOptions): Promise<string> {
       );
     }
     name = dirName;
+
+    // 既存プロジェクトファイルのチェック
+    const keyFiles = ['package.json', 'kagaribi.config.ts', '.git'];
+    for (const file of keyFiles) {
+      const exists = await stat(resolve(projectDir, file))
+        .then(() => true)
+        .catch(() => false);
+      if (exists) {
+        throw new Error(
+          `Cannot initialize project in current directory: "${file}" already exists. Current directory appears to contain an existing project.`
+        );
+      }
+    }
   } else {
     // 既存ディレクトリチェック（新規作成の場合のみ）
     const exists = await stat(projectDir)

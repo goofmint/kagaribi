@@ -88,7 +88,11 @@ function getTargetFlag(): DeployTarget | undefined {
     }
     case 'dev': {
       const { devServer } = await import('./commands/dev.js');
-      const port = parseInt(args[1] ?? '3000', 10);
+      const parsed = parseInt(args[1] ?? '3000', 10);
+      const port = Number.isNaN(parsed) || parsed <= 0 ? 3000 : parsed;
+      if (args[1] && (Number.isNaN(parsed) || parsed <= 0)) {
+        console.warn(`Invalid port "${args[1]}", using default port 3000`);
+      }
       await devServer({ port });
       break;
     }
