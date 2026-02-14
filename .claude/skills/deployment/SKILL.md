@@ -33,6 +33,105 @@ dist/
     ...
 ```
 
+## Deployment Model
+
+Kagaribi's deployment model enables **independent deployment per package**.
+
+### Independent Package Deployment
+
+Each package can be **deployed individually to different FaaS platforms**:
+
+- `users` → Cloudflare Workers (fast edge response)
+- `payments` → AWS Lambda (integration with existing AWS infrastructure)
+- `analytics` → Google Cloud Run (suitable for batch processing)
+- `notifications` → Deno Deploy (lightweight notification processing)
+
+### Only Root Package Knows Deployment Locations
+
+**Critical design principle:**
+- Packages don't know where they are deployed
+- Packages don't know where other packages are deployed
+- Only root package references `url` field in `kagaribi.config.ts` and connects to appropriate URLs
+
+**Why this design?**
+1. **Package independence**: Package code doesn't depend on deployment destination
+2. **Flexibility**: Changing deployment destination doesn't require changing package code
+3. **Environment switching**: Can use different deployment destinations for dev/staging/production
+
+### Automatic RPC Communication Switching
+
+`getClient<T>()` **automatically switches communication method based on deployment configuration**:
+
+1. **Co-location (same process)**
+   - Direct function calls
+   - No HTTP requests
+   - Low latency
+
+2. **Distributed deployment (different FaaS)**
+   - HTTP RPC communication
+   - Uses `url` from `kagaribi.config.ts`
+   - Package code requires no changes
+
+**Packages don't need to be aware of communication method.**
+
+### DB Connection Model
+
+Each package **establishes its own DB connection**.
+
+#### Co-location (Same Process)
+
+Root package executes `initDb()`, and all packages use same DB connection via `getDb()`:
+
+```typescript
+// packages/root/src/index.ts
+import { createDbMiddleware } from '@kagaribi/core';
+import { initDb } from '../../../db/index.js';
+
+const app = new Hono()
+  .use('*', createDbMiddleware({ initFn: initDb }));
+```
+
+Other packages simply call `getDb()`:
+
+```typescript
+// packages/users/src/index.ts
+import { getDb, schema } from '../../../db/index.js';
+
+app.get('/api/users', async (c) => {
+  const db = getDb();  // Use connection initialized by root
+  const users = await db.select().from(schema.users);
+  return c.json(users);
+});
+```
+
+#### Distributed Deployment (Different FaaS)
+
+Each package **independently** establishes DB connection using `createDbMiddleware()`:
+
+```typescript
+// packages/users/src/index.ts (deployed to Cloudflare Workers)
+import { createDbMiddleware } from '@kagaribi/core';
+import { initDb, getDb, schema } from '../../../db/index.js';
+
+const app = new Hono()
+  // Auto-initialize with middleware
+  .use('*', createDbMiddleware({ initFn: initDb }))
+
+  .get('/api/users', async (c) => {
+    const db = getDb();
+    const users = await db.select().from(schema.users);
+    return c.json(users);
+  });
+```
+
+**Connection string management via environment variables:**
+- Set `DATABASE_URL` environment variable at each deployment destination
+- `createDbMiddleware()` automatically reads environment variable
+- Node.js: `process.env.DATABASE_URL`
+- Cloudflare Workers: `c.env.DATABASE_URL` (via bindings)
+
+**Important:** All packages connect to the same database, but connections are established individually per package.
+
 ## Deployment Modes
 
 ### Dry-Run Mode (Default)
