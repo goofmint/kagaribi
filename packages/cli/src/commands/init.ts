@@ -1,4 +1,5 @@
 import { createInterface } from 'node:readline/promises';
+import { basename } from 'node:path';
 import { initProject, exec } from '@kagaribi/core';
 import type { DbDialect, DeployTarget } from '@kagaribi/core';
 
@@ -32,8 +33,9 @@ export async function initCommand(options: InitCommandOptions): Promise<void> {
   const parentDir = process.cwd();
 
   const projectDir = await initProject({ parentDir, name, target, db });
+  const projectName = basename(projectDir);
 
-  console.log(`\n✓ Project "${name}" created at ${projectDir}\n`);
+  console.log(`\n✓ Project "${projectName}" created at ${projectDir}\n`);
 
   // 依存インストールの確認
   const shouldInstall = await askYesNo('Install dependencies now? (pnpm install) [Y/n] ');
@@ -62,9 +64,10 @@ Set up database:
 `
     : '';
 
+  const cdStep = name === '.' ? '' : `  cd ${projectName}\n`;
+
   console.log(`Next steps:
-  cd ${name}${installSucceeded ? '' : '\n  pnpm install'}
-  kagaribi dev
+${cdStep}${installSucceeded ? '' : '  pnpm install\n'}  kagaribi dev
 ${dbSteps}
 Add a new package:
   kagaribi new <name>

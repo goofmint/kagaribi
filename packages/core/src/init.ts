@@ -1,4 +1,4 @@
-import { resolve } from 'node:path';
+import { resolve, basename } from 'node:path';
 import { mkdir, writeFile, stat } from 'node:fs/promises';
 import { scaffoldPackage } from './scaffold.js';
 import type { DbDialect, DeployTarget } from './types.js';
@@ -13,7 +13,7 @@ import {
 interface InitOptions {
   /** プロジェクトを作成する親ディレクトリ */
   parentDir: string;
-  /** プロジェクト名 */
+  /** プロジェクト名（"." の場合は親ディレクトリ名を使用） */
   name: string;
   /** rootパッケージのデプロイターゲット（デフォルト: 'node'） */
   target?: DeployTarget;
@@ -24,10 +24,15 @@ interface InitOptions {
 /**
  * プロジェクト名のバリデーション。
  * npmパッケージ名と同じルール: 英小文字、数字、ハイフンのみ。先頭は英小文字。
+ * "." は特別扱い（現在のディレクトリを意味する）。
  */
 function validateProjectName(name: string): void {
   if (!name) {
     throw new Error('Project name is required.');
+  }
+  // "." は特別扱い
+  if (name === '.') {
+    return;
   }
   if (!/^[a-z][a-z0-9-]*$/.test(name)) {
     throw new Error(
@@ -175,25 +180,52 @@ export default app;
  * @returns 作成されたプロジェクトディレクトリの絶対パス
  */
 export async function initProject(options: InitOptions): Promise<string> {
-  const { parentDir, name, target = 'node', db } = options;
+  let { parentDir, name, target = 'node', db } = options;
 
   validateProjectName(name);
 
-  const projectDir = resolve(parentDir, name);
+  // "." の場合、parentDirをプロジェクトディレクトリとし、nameはディレクトリ名から取得
+  const isCurrentDir = name === '.';
+  const projectDir = isCurrentDir ? resolve(parentDir) : resolve(parentDir, name);
 
-  // 既存ディレクトリチェック
-  const exists = await stat(projectDir)
-    .then(() => true)
-    .catch(() => false);
+  if (isCurrentDir) {
+    // ディレクトリ名からプロジェクト名を取得
+    const dirName = basename(projectDir);
+    // ディレクトリ名を検証
+    if (!/^[a-z][a-z0-9-]*$/.test(dirName)) {
+      throw new Error(
+        `Current directory name "${dirName}" is not valid for a project name. Must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens.`
+      );
+    }
+    name = dirName;
 
-  if (exists) {
-    throw new Error(
-      `Directory "${name}" already exists.`
-    );
+    // 既存プロジェクトファイルのチェック
+    const keyFiles = ['package.json', 'kagaribi.config.ts', '.git'];
+    for (const file of keyFiles) {
+      const exists = await stat(resolve(projectDir, file))
+        .then(() => true)
+        .catch(() => false);
+      if (exists) {
+        throw new Error(
+          `Cannot initialize project in current directory: "${file}" already exists. Current directory appears to contain an existing project.`
+        );
+      }
+    }
+  } else {
+    // 既存ディレクトリチェック（新規作成の場合のみ）
+    const exists = await stat(projectDir)
+      .then(() => true)
+      .catch(() => false);
+
+    if (exists) {
+      throw new Error(
+        `Directory "${name}" already exists.`
+      );
+    }
+
+    // プロジェクトディレクトリ作成
+    await mkdir(projectDir, { recursive: true });
   }
-
-  // プロジェクトディレクトリ作成
-  await mkdir(projectDir, { recursive: true });
 
   // ルートレベルのファイルを並列生成
   const rootFiles: Promise<void>[] = [
