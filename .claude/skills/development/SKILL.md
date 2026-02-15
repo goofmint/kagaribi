@@ -8,6 +8,35 @@ description: Create packages, generate models, and develop Kagaribi applications
 Guide Claude through package creation, model generation, local development, and
 inter-package communication.
 
+## Kagaribi's Design Philosophy
+
+Kagaribi is designed as a **framework for the AI coding agent era**.
+
+### Why Package-Based Architecture?
+
+1. **Context Minimization**
+   - Each package functions as an independent Hono application
+   - AI agents only need to read the code of required packages
+   - No need to understand the entire codebase
+
+2. **Separation of Concerns**
+   - Inspired by Web Components' independence model
+   - Each package has a clear scope of responsibility
+   - No need to know implementation details of other packages
+
+3. **Type Safety**
+   - Fully leverages TypeScript's type system
+   - Inter-package communication is type-safe via `getClient<T>()`
+   - AI agents can generate accurate code from type information
+
+### Maintaining Independence
+
+Each package is independent in these aspects:
+- Own routes and handlers
+- Own business logic
+- Own deployment target
+- Dependencies on other packages are type definitions only (not implementation)
+
 ## Core Commands
 
 ### Create New Package
@@ -203,9 +232,137 @@ export default app;
 - Calls `initDb()` with connection string
 - Ensures single initialization (idempotent)
 
+## Inter-Package Communication Rules
+
+**Absolute Rule: Direct inter-package communication is prohibited. Always go through the root package.**
+
+### Why Go Through Root Package?
+
+1. **Centralized Authentication & Authorization**
+   - Root package is the entry point for all requests
+   - Validates authentication and passes JWT tokens to packages
+   - Individual packages don't need authentication logic
+
+2. **Centralized Orchestration**
+   - Root package coordinates calls to other packages
+   - Only root package manages deployment URLs
+   - Packages can focus on their own logic
+
+3. **Clear Dependency Management**
+   - Package dependencies declared in `kagaribi.package.ts` `dependencies`
+   - Root package handles dependency resolution
+   - Prevents circular dependencies
+
+### Communication Pattern
+
+```text
+Client Request → Root Package → Package A
+                             ↓
+                             → Package B
+                             ↓
+                             ← Response
+```
+
+**Warning:** Direct calls from Package A to Package B is a design mistake.
+Root package should aggregate necessary data before passing to each package.
+
+## Interface Sharing
+
+Each package **exports type definitions** to be referenced by other packages.
+
+### Why Export Type Definitions?
+
+1. **Improved AI Agent Accuracy**
+   - Accurately understands API shape from type information
+   - Prevents mistakes in arguments and return types
+   - Autocomplete improves code generation accuracy
+
+2. **Implementation Separation**
+   - Share only type definitions, not implementation
+   - Maintains package independence while ensuring type safety
+   - Clear scope of refactoring impact
+
+### Required Pattern
+
+```typescript
+// packages/users/src/index.ts
+import { Hono } from 'hono';
+
+const app = new Hono()
+  .get('/api/users/:id', async (c) => {
+    // implementation...
+  });
+
+// ✅ REQUIRED: Export type definition
+export type UsersApp = typeof app;
+export default app;
+```
+
+Without `export type UsersApp = typeof app`, other packages cannot call it type-safely.
+
+## View (TSX) Rules
+
+**Views must be written in TSX. Direct HTML string literals in code are prohibited.**
+
+### Why Use JSX Components?
+
+1. **Type Safety**
+   - Props type checking works
+   - AI agents can generate accurate code from type information
+   - `html` tag literals don't have type checking
+
+2. **Reusability**
+   - Easy to reuse through componentization
+   - Can separate common layouts and parts
+
+3. **Maintainability**
+   - Clear HTML structure
+   - Editor support (syntax highlighting, autocomplete) works
+
+### ❌ Prohibited
+
+```typescript
+import { html } from 'hono/html';
+
+app.get('/', (c) => {
+  return c.html(html`
+    <html>
+      <body>
+        <h1>Hello</h1>
+      </body>
+    </html>
+  `);
+});
+```
+
+### ✅ Recommended
+
+```typescript
+import { jsx } from 'hono/jsx';
+
+const Layout = ({ children }: { children: any }) => (
+  <html>
+    <body>{children}</body>
+  </html>
+);
+
+const HomePage = () => (
+  <Layout>
+    <h1>Hello</h1>
+  </Layout>
+);
+
+app.get('/', (c) => {
+  return c.html(<HomePage />);
+});
+```
+
 ## Inter-Package Communication (RPC)
 
 Use `getClient<T>()` for type-safe calls between packages:
+
+**Important:** This feature is primarily used for **calling packages from the root package**.
+Do not use for direct inter-package communication (see "Inter-Package Communication Rules" above).
 
 ```typescript
 import { Hono } from 'hono';

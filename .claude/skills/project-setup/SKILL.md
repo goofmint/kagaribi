@@ -8,6 +8,73 @@ description: Initialize new Kagaribi projects with optional database and deploym
 Guide Claude through initializing a new Kagaribi project with appropriate
 configuration based on user requirements.
 
+## Kagaribi Architecture Fundamentals
+
+### Special Role of Root Package
+
+The root package is the **only special package** with three key responsibilities:
+
+1. **Entry Point**
+   - Receives all HTTP requests
+   - Client requests always go through root package
+   - Orchestrates calls to other packages
+
+2. **Authentication & Authorization**
+   - Implements user authentication
+   - Manages sessions
+   - Passes authentication info to packages as JWT tokens
+
+3. **Deployment Information Management**
+   - Only root package knows where each package is deployed
+   - References `url` field in `kagaribi.config.ts`
+   - RPC client automatically connects to appropriate URLs
+
+### Principles When Creating New Packages
+
+1. **Maintain Independence**
+   - Each package is an independent Hono application
+   - Don't depend on implementation details of other packages
+   - Share only type definitions
+
+2. **Clear Scope of Responsibility**
+   - One package = one domain/feature
+   - Examples: `users` (user management), `payments` (payment processing), `notifications` (notifications)
+
+3. **Communication Through Root Package**
+   - Direct inter-package communication is prohibited
+   - Root package calls each package
+
+### DB Model Sharing
+
+**DB models are shared across the entire application**
+
+- `db/schema.ts` - All table definitions
+- `db/models/` - Helper functions for each table
+- All packages can reference via `import { schema } from '../../../db/index.js'`
+
+**Why share?**
+- Database schema must be consistent across the entire application
+- If each package has its own schema, inconsistencies occur
+- DB migrations are centrally managed
+
+### Authentication Model
+
+**Root package provides authentication and passes information to packages via JWT**
+
+1. **Client → Root Package**
+   - User logs in
+   - Root package validates authentication
+   - Issues JWT token
+
+2. **Root Package → Each Package**
+   - When root package calls each package's API, includes JWT in `Authorization` header
+   - Each package validates JWT to get user information
+   - Packages don't have authentication logic (only JWT validation)
+
+3. **Differences by Environment**
+   - **Co-location (development)**: Runs in same process as root, JWT may not be needed
+   - **Distributed deployment (production)**: Deployed to different FaaS, JWT is required
+
 ## Interactive Decision Flow
 
 When a user wants to create a new project, gather these requirements:
