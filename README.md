@@ -58,7 +58,7 @@ With this pattern:
 
 ### Communication Flow
 
-```
+```text
 Client → Root Package (Auth/Routing)
            │
            ├─ Local: app.route() direct mount
@@ -437,7 +437,7 @@ kagaribi build --env staging      # Build with staging environment config
 ```
 
 **Output:**
-```
+```text
 dist/
   root/
     index.js          # Bundled application

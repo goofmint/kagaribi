@@ -255,7 +255,7 @@ export default app;
 
 ### Communication Pattern
 
-```
+```text
 Client Request → Root Package → Package A
                              ↓
                              → Package B
