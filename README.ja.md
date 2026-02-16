@@ -22,14 +22,14 @@ Honoベースのマイクロサービス管理フレームワーク。モノレ�
 ### 1. プロジェクト作成
 
 ```bash
-# 新しいプロジェクトを作成
-kagaribi init my-project
+# 新しいプロジェクトを作成（npx使用 - インストール不要）
+npx kagaribi init my-project
 
 # ターゲット指定で作成
-kagaribi init my-project --cloudflare
+npx kagaribi init my-project --cloudflare
 
 # データベース付きで作成（PostgreSQL）
-kagaribi init my-blog --db postgresql
+npx kagaribi init my-blog --db postgresql
 ```
 
 以下の構造が自動生成されます:
@@ -50,7 +50,7 @@ my-project/
 
 ```bash
 cd my-project
-kagaribi dev        # http://localhost:3000
+npx kagaribi dev        # http://localhost:3000
 ```
 
 ### 2. 設定ファイル
@@ -84,10 +84,10 @@ export default defineConfig({
 
 ```bash
 # 新しいパッケージを作成（rootにco-locate）
-kagaribi new payments
+npx kagaribi new payments
 
 # ターゲット指定で作成
-kagaribi new payments --cloudflare
+npx kagaribi new payments --cloudflare
 ```
 
 生成されるファイル:
@@ -118,8 +118,8 @@ export default app;
 ### 4. 開発サーバー
 
 ```bash
-kagaribi dev        # http://localhost:3000
-kagaribi dev 8080   # ポート指定
+npx kagaribi dev        # http://localhost:3000
+npx kagaribi dev 8080   # ポート指定
 ```
 
 全パッケージが単一プロセスで起動し、ローカルルーティングで動作します。
@@ -128,11 +128,11 @@ kagaribi dev 8080   # ポート指定
 
 | コマンド | 説明 |
 |----------|------|
-| `kagaribi init <name> [target flag]` | 新規プロジェクト作成 |
-| `kagaribi dev [port]` | 開発サーバー起動 |
-| `kagaribi new <name> [target flag]` | 新規パッケージ作成 |
-| `kagaribi build [--env name]` | デプロイ用ビルド |
-| `kagaribi deploy [pkg] [target flag] [--env]` | デプロイ実行 |
+| `npx kagaribi init <name> [target flag]` | 新規プロジェクト作成 |
+| `npx kagaribi dev [port]` | 開発サーバー起動 |
+| `npx kagaribi new <name> [target flag]` | 新規パッケージ作成 |
+| `npx kagaribi build [--env name]` | デプロイ用ビルド |
+| `npx kagaribi deploy [pkg] [target flag] [--env]` | デプロイ実行 |
 
 ### ターゲットフラグ
 
