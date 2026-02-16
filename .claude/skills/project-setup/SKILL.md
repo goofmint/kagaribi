@@ -94,22 +94,22 @@ When a user wants to create a new project, gather these requirements:
 ## Command Syntax
 
 ```bash
-kagaribi init <name> [--db postgresql|mysql] [--node|--cloudflare|--lambda|--cloudrun|--deno]
+npx kagaribi init <name> [--db postgresql|mysql] [--node|--cloudflare|--lambda|--cloudrun|--deno]
 ```
 
 **Examples:**
 ```bash
 # Basic project with Node.js target (default)
-kagaribi init my-api
+npx kagaribi init my-api
 
 # Project with PostgreSQL database
-kagaribi init blog-api --db postgresql
+npx kagaribi init blog-api --db postgresql
 
 # Project with MySQL and Cloudflare Workers target
-kagaribi init shop-api --db mysql --cloudflare
+npx kagaribi init shop-api --db mysql --cloudflare
 
 # Project without database, targeting AWS Lambda
-kagaribi init webhook-handler --lambda
+npx kagaribi init webhook-handler --lambda
 ```
 
 ## Generated Files
@@ -176,7 +176,7 @@ pnpm run dev
 
 **Commands:**
 ```bash
-kagaribi init webhook-api --node
+npx kagaribi init webhook-api --node
 cd webhook-api
 pnpm install
 pnpm run dev
@@ -193,7 +193,7 @@ pnpm run dev
 
 **Commands:**
 ```bash
-kagaribi init blog-api --db postgresql --node
+npx kagaribi init blog-api --db postgresql --node
 cd blog-api
 pnpm install
 cp .env.example .env
@@ -215,7 +215,7 @@ pnpm run dev
 
 **Commands:**
 ```bash
-kagaribi init serverless-api --db mysql --cloudflare
+npx kagaribi init serverless-api --db mysql --cloudflare
 cd serverless-api
 pnpm install
 cp .env.example .env

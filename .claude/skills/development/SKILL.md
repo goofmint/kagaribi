@@ -42,19 +42,19 @@ Each package is independent in these aspects:
 ### Create New Package
 
 ```bash
-kagaribi new <name> [--node|--cloudflare|--lambda|--cloudrun|--deno]
+npx kagaribi new <name> [--node|--cloudflare|--lambda|--cloudrun|--deno]
 ```
 
 **Examples:**
 ```bash
 # Co-located package (runs with root by default)
-kagaribi new users
+npx kagaribi new users
 
 # Package targeting Cloudflare Workers
-kagaribi new payments --cloudflare
+npx kagaribi new payments --cloudflare
 
 # Package targeting AWS Lambda
-kagaribi new analytics --lambda
+npx kagaribi new analytics --lambda
 ```
 
 **What gets created:**
@@ -65,13 +65,13 @@ kagaribi new analytics --lambda
 ### Start Development Server
 
 ```bash
-kagaribi dev [port]
+npx kagaribi dev [port]
 ```
 
 **Examples:**
 ```bash
-kagaribi dev         # http://localhost:3000 (default)
-kagaribi dev 8080    # http://localhost:8080
+npx kagaribi dev         # http://localhost:3000 (default)
+npx kagaribi dev 8080    # http://localhost:8080
 ```
 
 All packages run in a single process with automatic routing.
@@ -79,7 +79,7 @@ All packages run in a single process with automatic routing.
 ### Generate Database Models
 
 ```bash
-kagaribi model new <table> <field:type>... [--db postgresql|mysql]
+npx kagaribi model new <table> <field:type>... [--db postgresql|mysql]
 ```
 
 **Supported field types:** `string`, `integer`, `boolean`, `timestamp`, `text`
@@ -87,13 +87,13 @@ kagaribi model new <table> <field:type>... [--db postgresql|mysql]
 **Examples:**
 ```bash
 # Generate posts table with title and content
-kagaribi model new posts title:string content:text --db postgresql
+npx kagaribi model new posts title:string content:text --db postgresql
 
 # Generate products table
-kagaribi model new products name:string price:integer stock:integer
+npx kagaribi model new products name:string price:integer stock:integer
 
 # Auto-detect database dialect from config
-kagaribi model new comments postId:integer userId:integer body:text
+npx kagaribi model new comments postId:integer userId:integer body:text
 ```
 
 **What gets created:**
@@ -449,7 +449,7 @@ export default app;
 
 ### 1. Create Package
 ```bash
-kagaribi new orders --node
+npx kagaribi new orders --node
 ```
 
 ### 2. Define Package Manifest
@@ -464,7 +464,7 @@ export default definePackage({
 
 ### 3. Generate Models (if needed)
 ```bash
-kagaribi model new orders userId:integer productId:integer quantity:integer
+npx kagaribi model new orders userId:integer productId:integer quantity:integer
 pnpm run db:generate
 pnpm run db:migrate
 ```
@@ -474,7 +474,7 @@ Edit `packages/orders/src/index.ts` with routes and logic.
 
 ### 5. Start Dev Server
 ```bash
-kagaribi dev
+npx kagaribi dev
 ```
 
 ### 6. Test Locally
@@ -506,10 +506,10 @@ curl -X POST http://localhost:3000/api/orders \
 - **Solution:** Verify target package exports its app type (`export type XxxApp = typeof app`)
 
 **Issue:** Model generation fails
-- **Solution:** Run `kagaribi init --db <dialect>` first to set up database support
+- **Solution:** Run `npx kagaribi init --db <dialect>` first to set up database support
 
 **Issue:** Changes not reflected
-- **Solution:** Restart `kagaribi dev` server (hot reload not yet supported)
+- **Solution:** Restart `npx kagaribi dev` server (hot reload not yet supported)
 
 ## Next Steps
 

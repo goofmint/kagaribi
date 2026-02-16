@@ -1,6 +1,6 @@
 {
   "name": "kagaribi",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Hono-based microservices framework - CLI wrapper",
   "license": "MIT",
   "type": "module",

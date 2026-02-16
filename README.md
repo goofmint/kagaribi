@@ -80,22 +80,22 @@ Client → Root Package (Auth/Routing)
 ## Quick Start
 
 ```bash
-# Create a new project
-kagaribi init my-project
+# Create a new project (using npx - no installation needed)
+npx kagaribi init my-project
 cd my-project
 
 # Install dependencies
 pnpm install
 
 # Start the development server
-kagaribi dev        # http://localhost:3000
+npx kagaribi dev        # http://localhost:3000
 ```
 
 ### With Database Support
 
 ```bash
 # Create a project with PostgreSQL
-kagaribi init my-blog --db postgresql
+npx kagaribi init my-blog --db postgresql
 cd my-blog
 
 # Install dependencies
@@ -244,7 +244,7 @@ export default defineConfig({
 Deploy to specific environment:
 
 ```bash
-kagaribi deploy --env production
+npx kagaribi deploy --env production
 ```
 
 ### Supported Platforms
@@ -282,7 +282,7 @@ Create a new Kagaribi project.
 
 **Syntax:**
 ```bash
-kagaribi init <name> [--db postgresql|mysql] [--node|--cloudflare|--lambda|--cloudrun|--deno]
+npx kagaribi init <name> [--db postgresql|mysql] [--node|--cloudflare|--lambda|--cloudrun|--deno]
 ```
 
 **Options:**
@@ -297,16 +297,16 @@ kagaribi init <name> [--db postgresql|mysql] [--node|--cloudflare|--lambda|--clo
 **Examples:**
 ```bash
 # Basic project
-kagaribi init my-api
+npx kagaribi init my-api
 
 # Project with PostgreSQL database
-kagaribi init blog-api --db postgresql
+npx kagaribi init blog-api --db postgresql
 
 # Project targeting Cloudflare Workers
-kagaribi init edge-api --cloudflare
+npx kagaribi init edge-api --cloudflare
 
 # Project with MySQL and AWS Lambda target
-kagaribi init shop-api --db mysql --lambda
+npx kagaribi init shop-api --db mysql --lambda
 ```
 
 **Generated Files:**
@@ -324,7 +324,7 @@ Create a new package in the project.
 
 **Syntax:**
 ```bash
-kagaribi new <name> [--node|--cloudflare|--lambda|--cloudrun|--deno]
+npx kagaribi new <name> [--node|--cloudflare|--lambda|--cloudrun|--deno]
 ```
 
 **Options:**
@@ -334,13 +334,13 @@ kagaribi new <name> [--node|--cloudflare|--lambda|--cloudrun|--deno]
 **Examples:**
 ```bash
 # Co-located package (runs with root)
-kagaribi new users
+npx kagaribi new users
 
 # Package targeting Cloudflare Workers
-kagaribi new payments --cloudflare
+npx kagaribi new payments --cloudflare
 
 # Package targeting AWS Lambda
-kagaribi new analytics --lambda
+npx kagaribi new analytics --lambda
 ```
 
 **Generated Files:**
@@ -356,7 +356,7 @@ Generate a database model with Drizzle ORM.
 
 **Syntax:**
 ```bash
-kagaribi model new <table> <field:type>... [--db postgresql|mysql]
+npx kagaribi model new <table> <field:type>... [--db postgresql|mysql]
 ```
 
 **Supported Field Types:**
@@ -369,13 +369,13 @@ kagaribi model new <table> <field:type>... [--db postgresql|mysql]
 **Examples:**
 ```bash
 # Generate posts table
-kagaribi model new posts title:string content:text published:boolean --db postgresql
+npx kagaribi model new posts title:string content:text published:boolean --db postgresql
 
 # Generate users table
-kagaribi model new users name:string email:string age:integer
+npx kagaribi model new users name:string email:string age:integer
 
 # Generate orders table (auto-detects dialect from config)
-kagaribi model new orders userId:integer productId:integer quantity:integer total:integer
+npx kagaribi model new orders userId:integer productId:integer quantity:integer total:integer
 ```
 
 **Generated/Updated Files:**
@@ -397,7 +397,7 @@ Start the development server with all packages co-located.
 
 **Syntax:**
 ```bash
-kagaribi dev [port]
+npx kagaribi dev [port]
 ```
 
 **Options:**
@@ -405,8 +405,8 @@ kagaribi dev [port]
 
 **Examples:**
 ```bash
-kagaribi dev        # Starts at http://localhost:3000
-kagaribi dev 8080   # Starts at http://localhost:8080
+npx kagaribi dev        # Starts at http://localhost:3000
+npx kagaribi dev 8080   # Starts at http://localhost:8080
 ```
 
 **What happens:**
@@ -423,7 +423,7 @@ Build packages for deployment.
 
 **Syntax:**
 ```bash
-kagaribi build [--env <environment>]
+npx kagaribi build [--env <environment>]
 ```
 
 **Options:**
@@ -431,9 +431,9 @@ kagaribi build [--env <environment>]
 
 **Examples:**
 ```bash
-kagaribi build                    # Build with default configuration
-kagaribi build --env production   # Build with production environment config
-kagaribi build --env staging      # Build with staging environment config
+npx kagaribi build                    # Build with default configuration
+npx kagaribi build --env production   # Build with production environment config
+npx kagaribi build --env staging      # Build with staging environment config
 ```
 
 **Output:**
@@ -457,33 +457,33 @@ Deploy packages to cloud platforms.
 
 **Syntax:**
 ```bash
-kagaribi deploy [package] [--cloudflare|--lambda|--cloudrun|--deno|--node] [--env <environment>]
+npx kagaribi deploy [package] [--cloudflare|--lambda|--cloudrun|--deno|--node] [--env <environment>]
 ```
 
 **Modes:**
 
 1. **Dry-run mode** (no flags) - Shows deployment instructions without deploying:
    ```bash
-   kagaribi deploy
-   kagaribi deploy users
+   npx kagaribi deploy
+   npx kagaribi deploy users
    ```
 
 2. **Deploy specific package to target:**
    ```bash
-   kagaribi deploy users --cloudflare
-   kagaribi deploy payments --lambda
+   npx kagaribi deploy users --cloudflare
+   npx kagaribi deploy payments --lambda
    ```
 
 3. **Deploy all undeployed packages to target:**
    ```bash
-   kagaribi deploy --cloudflare
-   kagaribi deploy --lambda
+   npx kagaribi deploy --cloudflare
+   npx kagaribi deploy --lambda
    ```
 
 4. **Deploy using environment configuration:**
    ```bash
-   kagaribi deploy --env production
-   kagaribi deploy --env staging
+   npx kagaribi deploy --env production
+   npx kagaribi deploy --env staging
    ```
 
 **Platform Requirements:**
@@ -499,18 +499,18 @@ kagaribi deploy [package] [--cloudflare|--lambda|--cloudrun|--deno|--node] [--en
 **Examples:**
 ```bash
 # Deploy users package to Cloudflare Workers
-kagaribi deploy users --cloudflare
+npx kagaribi deploy users --cloudflare
 
 # Deploy payments to AWS Lambda
 export AWS_LAMBDA_ROLE_ARN=arn:aws:iam::123456789012:role/lambda-role
-kagaribi deploy payments --lambda
+npx kagaribi deploy payments --lambda
 
 # Deploy API to Google Cloud Run
 export CLOUD_RUN_REGION=us-central1
-kagaribi deploy api --cloudrun
+npx kagaribi deploy api --cloudrun
 
 # Deploy all packages using production config
-kagaribi deploy --env production
+npx kagaribi deploy --env production
 ```
 
 **After deployment:**
@@ -526,10 +526,10 @@ kagaribi deploy --env production
 
 ```bash
 # PostgreSQL
-kagaribi init my-project --db postgresql
+npx kagaribi init my-project --db postgresql
 
 # MySQL
-kagaribi init my-project --db mysql
+npx kagaribi init my-project --db mysql
 ```
 
 **Generated files:**

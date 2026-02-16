@@ -11,14 +11,14 @@ environments.
 ## Build Process
 
 ```bash
-kagaribi build [--env environment]
+npx kagaribi build [--env environment]
 ```
 
 **Examples:**
 ```bash
-kagaribi build                    # Default environment
-kagaribi build --env production   # Production environment
-kagaribi build --env staging      # Staging environment
+npx kagaribi build                    # Default environment
+npx kagaribi build --env production   # Production environment
+npx kagaribi build --env staging      # Staging environment
 ```
 
 **Output:**
@@ -139,9 +139,9 @@ const app = new Hono()
 Without explicit target or environment flags, shows deployment instructions:
 
 ```bash
-kagaribi deploy
-kagaribi deploy users
-kagaribi deploy --dry-run
+npx kagaribi deploy
+npx kagaribi deploy users
+npx kagaribi deploy --dry-run
 ```
 
 **Output:** Platform-specific commands and setup instructions (does not deploy).
@@ -152,17 +152,17 @@ Specify target platform or environment to perform actual deployment:
 
 ```bash
 # Deploy specific package to target
-kagaribi deploy users --cloudflare
-kagaribi deploy payments --lambda
-kagaribi deploy api --cloudrun
+npx kagaribi deploy users --cloudflare
+npx kagaribi deploy payments --lambda
+npx kagaribi deploy api --cloudrun
 
 # Deploy all undeployed packages to target
-kagaribi deploy --cloudflare
-kagaribi deploy --lambda
+npx kagaribi deploy --cloudflare
+npx kagaribi deploy --lambda
 
 # Deploy using environment configuration
-kagaribi deploy --env production
-kagaribi deploy --env staging
+npx kagaribi deploy --env production
+npx kagaribi deploy --env staging
 ```
 
 After successful deployment, `kagaribi.config.ts` is **automatically updated**
@@ -539,7 +539,7 @@ pnpm run db:migrate
 
 ## Best Practices
 
-1. **Test locally first** - Run `kagaribi dev` before deploying
+1. **Test locally first** - Run `npx kagaribi dev` before deploying
 2. **Use environments** - Define staging and production configurations
 3. **Secure secrets** - Use environment variables, never commit credentials
 4. **Deploy incrementally** - Deploy to staging before production
