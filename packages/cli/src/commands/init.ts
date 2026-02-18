@@ -64,7 +64,7 @@ export async function initCommand(options: InitCommandOptions): Promise<void> {
       dbSteps = `
 Set up Cloudflare D1 database:
   npx wrangler d1 create <database-name>  # Create D1 database
-  # Update wrangler.json with database_id
+  # Update wrangler.toml with database_id
   npx drizzle-kit generate                # Generate migrations
   npx wrangler d1 migrations apply <database-name> --local  # Apply locally
   npx wrangler d1 migrations apply <database-name>          # Apply to production
