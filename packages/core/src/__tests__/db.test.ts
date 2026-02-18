@@ -52,24 +52,24 @@ describe('generateDbSchema', () => {
 });
 
 describe('generateDbIndex', () => {
-  it.each(dialects)('%s: getDb() シングルトンを含む', (dialect) => {
+  it.each(dialects)('%s: createDbHelper を使用する', (dialect) => {
     const index = generateDbIndex(dialect);
-    expect(index).toContain('export function getDb()');
-    expect(index).toContain('_db');
-    expect(index).toContain("from './schema.ts'");
-    expect(index).toContain('export { schema }');
+    expect(index).toContain('createDbHelper');
+    expect(index).toContain('const { initDb, getDb } =');
+    expect(index).toContain("from './schema.js'");
+    expect(index).toContain('export { initDb, getDb, schema }');
   });
 
   it('postgresql: node-postgres ドライバーを使用する', () => {
     const index = generateDbIndex('postgresql');
     expect(index).toContain("from 'drizzle-orm/node-postgres'");
-    expect(index).toContain('DATABASE_URL');
+    expect(index).toContain("drizzle(url, { schema })");
   });
 
   it('mysql: mysql2 ドライバーを使用する', () => {
     const index = generateDbIndex('mysql');
     expect(index).toContain("from 'drizzle-orm/mysql2'");
-    expect(index).toContain('DATABASE_URL');
+    expect(index).toContain("drizzle(url, { schema })");
   });
 });
 

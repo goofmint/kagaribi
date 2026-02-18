@@ -14,17 +14,29 @@ export const cloudflareAdapter: BuildAdapter = {
     ].join('\n');
   },
 
-  generateConfigs(group: BuildGroup): GeneratedFile[] {
+  generateConfigs(group: BuildGroup, config?: import('../../types.js').KagaribiConfig): GeneratedFile[] {
     const COMPATIBILITY_DATE = '2024-12-01';
+    const lines = [
+      `name = "${group.host.name}"`,
+      `main = "index.js"`,
+      `compatibility_date = "${COMPATIBILITY_DATE}"`,
+    ];
+
+    // D1 データベース設定を追加
+    if (config?.db?.dialect === 'sqlite' && config.db.driver === 'd1') {
+      lines.push('');
+      lines.push('[[d1_databases]]');
+      lines.push('binding = "DB"');
+      lines.push(`database_name = "${group.host.name}-db"`);
+      lines.push('database_id = "<your-database-id>"  # wrangler d1 create で取得した ID を設定');
+    }
+
+    lines.push('');
+
     return [
       {
         filename: 'wrangler.toml',
-        content: [
-          `name = "${group.host.name}"`,
-          `main = "index.js"`,
-          `compatibility_date = "${COMPATIBILITY_DATE}"`,
-          '',
-        ].join('\n'),
+        content: lines.join('\n'),
       },
     ];
   },

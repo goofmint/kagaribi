@@ -69,7 +69,7 @@ export async function modelNewCommand(options: ModelNewOptions): Promise<void> {
       if (error.message.includes('Database is not configured')) {
         console.error('\n❌ Error: Database is not configured.');
         console.error('   Please run "kagaribi init --db <dialect>" first to set up database support.');
-        console.error('   Supported dialects: postgresql, mysql');
+        console.error('   Supported dialects: postgresql, mysql, sqlite');
         process.exit(1);
       }
 

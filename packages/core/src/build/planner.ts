@@ -1,4 +1,4 @@
-import type { DeployTarget, ResolvedPackage } from '../types.js';
+import type { DeployTarget, ResolvedPackage, KagaribiConfig } from '../types.js';
 import type { BuildGroup, BuildPlan } from './adapters/types.js';
 
 /**
@@ -10,7 +10,8 @@ import type { BuildGroup, BuildPlan } from './adapters/types.js';
 export function createBuildPlan(
   projectRoot: string,
   resolved: ResolvedPackage[],
-  environment: string
+  environment: string,
+  config: KagaribiConfig
 ): BuildPlan {
   // url が指定されているパッケージはリモート扱い（colocateWithより優先）
   const isIndependent = (p: ResolvedPackage): boolean =>
@@ -45,5 +46,5 @@ export function createBuildPlan(
     return { host, colocated, remotes, target };
   });
 
-  return { groups, projectRoot, environment };
+  return { groups, projectRoot, environment, config };
 }

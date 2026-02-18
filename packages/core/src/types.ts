@@ -9,7 +9,10 @@ export type DeployTarget =
   | 'deno';
 
 /** 対応するデータベース方言 */
-export type DbDialect = 'postgresql' | 'mysql';
+export type DbDialect = 'postgresql' | 'mysql' | 'sqlite';
+
+/** SQLite ドライバーの種類 */
+export type SqliteDriver = 'better-sqlite3' | 'libsql' | 'd1' | 'sqlite-cloud';
 
 /** パッケージマニフェスト定義 */
 export interface PackageDefinition {
@@ -57,6 +60,8 @@ export interface KagaribiConfig {
   /** データベース設定 */
   db?: {
     dialect: DbDialect;
+    /** SQLite 使用時のドライバー指定（オプショナル） */
+    driver?: SqliteDriver;
   };
 }
 

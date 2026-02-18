@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { ResolvedPackage } from '../types.js';
+import type { ResolvedPackage, KagaribiConfig } from '../types.js';
 import { createBuildPlan } from '../build/planner.js';
 import { getAdapter } from '../build/adapters/index.js';
 
@@ -14,6 +14,11 @@ function makePkg(overrides: Partial<ResolvedPackage> & { name: string }): Resolv
   };
 }
 
+// テスト用のモックConfig
+const mockConfig: KagaribiConfig = {
+  packages: {},
+};
+
 describe('createBuildPlan', () => {
   it('全パッケージcolocate → 1グループ', () => {
     const resolved: ResolvedPackage[] = [
@@ -22,7 +27,7 @@ describe('createBuildPlan', () => {
       makePkg({ name: 'users', deploy: { colocateWith: 'root' } }),
     ];
 
-    const plan = createBuildPlan('/project', resolved, 'development');
+    const plan = createBuildPlan('/project', resolved, 'development', mockConfig);
 
     expect(plan.groups).toHaveLength(1);
     expect(plan.groups[0].host.name).toBe('root');
@@ -42,7 +47,7 @@ describe('createBuildPlan', () => {
       }),
     ];
 
-    const plan = createBuildPlan('/project', resolved, 'production');
+    const plan = createBuildPlan('/project', resolved, 'production', mockConfig);
 
     expect(plan.groups).toHaveLength(2);
 
@@ -65,7 +70,7 @@ describe('createBuildPlan', () => {
       makePkg({ name: 'root', deploy: {} }),
     ];
 
-    const plan = createBuildPlan('/project', resolved, 'default');
+    const plan = createBuildPlan('/project', resolved, 'default', mockConfig);
 
     expect(plan.groups[0].target).toBe('node');
   });
@@ -75,7 +80,7 @@ describe('createBuildPlan', () => {
       makePkg({ name: 'root', deploy: { target: 'node' } }),
     ];
 
-    const plan = createBuildPlan('/my/project', resolved, 'staging');
+    const plan = createBuildPlan('/my/project', resolved, 'staging', mockConfig);
 
     expect(plan.projectRoot).toBe('/my/project');
     expect(plan.environment).toBe('staging');

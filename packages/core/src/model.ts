@@ -1,6 +1,6 @@
 import { readFile, writeFile, stat, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { DbDialect } from './types.js';
+import type { DbDialect, SqliteDriver } from './types.js';
 
 /** サポートされるフィールドタイプ */
 export const SUPPORTED_FIELD_TYPES = [
@@ -99,6 +99,29 @@ export function getColumnDefinition(
           return `varchar(${columnName}, { length: 36 }).notNull()`;
       }
       break;
+
+    case 'sqlite':
+      switch (fieldType) {
+        case 'string':
+          return `text(${columnName}).notNull()`;
+        case 'text':
+          return `text(${columnName}).notNull()`;
+        case 'integer':
+          return `integer(${columnName}).notNull()`;
+        case 'bigint':
+          return `integer(${columnName}, { mode: 'number' }).notNull()`;
+        case 'boolean':
+          return `integer(${columnName}, { mode: 'boolean' }).notNull()`;
+        case 'timestamp':
+          return `integer(${columnName}, { mode: 'timestamp' }).notNull()`;
+        case 'date':
+          return `text(${columnName}).notNull()`;
+        case 'json':
+          return `text(${columnName}, { mode: 'json' }).notNull()`;
+        case 'uuid':
+          return `text(${columnName}).notNull()`;
+      }
+      break;
   }
 }
 
@@ -189,6 +212,22 @@ function getImportsForFieldType(
           return ['json'];
       }
       break;
+
+    case 'sqlite':
+      switch (fieldType) {
+        case 'string':
+        case 'text':
+        case 'date':
+        case 'json':
+        case 'uuid':
+          return ['text'];
+        case 'integer':
+        case 'bigint':
+        case 'boolean':
+        case 'timestamp':
+          return ['integer'];
+      }
+      break;
   }
 }
 
@@ -224,8 +263,40 @@ export function generateTableDefinition(
   fields: FieldDefinition[],
   dialect: DbDialect
 ): TableDefinition {
-  const tableFunction = dialect === 'postgresql' ? 'pgTable' : 'mysqlTable';
-  const requiredImports = new Set<string>([tableFunction, 'serial', 'timestamp']);
+  let tableFunction: string;
+  let primaryKeyColumn: string;
+  let createdAtColumn: string;
+  const baseImports = new Set<string>();
+
+  switch (dialect) {
+    case 'postgresql':
+      tableFunction = 'pgTable';
+      baseImports.add('pgTable');
+      baseImports.add('serial');
+      baseImports.add('timestamp');
+      primaryKeyColumn = `  id: serial('id').primaryKey(),`;
+      createdAtColumn = `  createdAt: timestamp('created_at').defaultNow().notNull(),`;
+      break;
+
+    case 'mysql':
+      tableFunction = 'mysqlTable';
+      baseImports.add('mysqlTable');
+      baseImports.add('serial');
+      baseImports.add('timestamp');
+      primaryKeyColumn = `  id: serial('id').primaryKey(),`;
+      createdAtColumn = `  createdAt: timestamp('created_at').defaultNow().notNull(),`;
+      break;
+
+    case 'sqlite':
+      tableFunction = 'sqliteTable';
+      baseImports.add('sqliteTable');
+      baseImports.add('integer');
+      primaryKeyColumn = `  id: integer('id').primaryKey({ autoIncrement: true }),`;
+      createdAtColumn = `  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()).notNull(),`;
+      break;
+  }
+
+  const requiredImports = baseImports;
 
   // フィールドタイプに基づいてインポートを収集
   for (const field of fields) {
@@ -237,12 +308,12 @@ export function generateTableDefinition(
 
   // カラム定義を生成
   const columnDefinitions = [
-    `  id: serial('id').primaryKey(),`,
+    primaryKeyColumn,
     ...fields.map((field) => {
       const columnDef = getColumnDefinition(field.name, field.type, dialect);
       return `  ${field.name}: ${columnDef},`;
     }),
-    `  createdAt: timestamp('created_at').defaultNow().notNull(),`,
+    createdAtColumn,
   ];
 
   const tableCode = `export const ${tableName} = ${tableFunction}('${tableName}', {
@@ -315,7 +386,9 @@ export async function appendModelToSchema(
 
   // 既存のインポート行を検出
   const packageName =
-    dialect === 'postgresql' ? 'drizzle-orm/pg-core' : 'drizzle-orm/mysql-core';
+    dialect === 'postgresql' ? 'drizzle-orm/pg-core' :
+    dialect === 'mysql' ? 'drizzle-orm/mysql-core' :
+    'drizzle-orm/sqlite-core';
   const importLineRegex = new RegExp(
     `import\\s*{[^}]+}\\s*from\\s*['"]${packageName.replace('/', '\\/')}['"];?`
   );
@@ -400,21 +473,27 @@ export function parseFieldDefinitions(fieldArgs: string[]): FieldDefinition[] {
   return fields;
 }
 
+/** データベース設定の検出結果 */
+export interface DbConfig {
+  dialect: DbDialect;
+  driver?: SqliteDriver;
+}
+
 /**
- * プロジェクトの kagaribi.config.ts からデータベース方言を検出する。
+ * プロジェクトの kagaribi.config.ts からデータベース設定を検出する。
  *
  * @param projectRoot - プロジェクトルートディレクトリ
- * @returns データベース方言
+ * @returns データベース設定（方言とドライバー）
  *
  * @throws {Error} データベースが設定されていない場合、または設定ファイルの読み込みに失敗した場合
  *
  * @example
  * ```typescript
- * const dialect = await detectDbDialect('/path/to/project');
- * // => 'postgresql' or 'mysql'
+ * const config = await detectDbConfig('/path/to/project');
+ * // => { dialect: 'sqlite', driver: 'better-sqlite3' }
  * ```
  */
-export async function detectDbDialect(projectRoot: string): Promise<DbDialect> {
+export async function detectDbConfig(projectRoot: string): Promise<DbConfig> {
   const configPath = join(projectRoot, 'kagaribi.config.ts');
 
   try {
@@ -432,19 +511,52 @@ export async function detectDbDialect(projectRoot: string): Promise<DbDialect> {
     }
 
     const dialect = dialectMatch[1];
-    if (dialect !== 'postgresql' && dialect !== 'mysql') {
+    if (dialect !== 'postgresql' && dialect !== 'mysql' && dialect !== 'sqlite') {
       throw new Error(`Unsupported database dialect: "${dialect}"`);
     }
 
-    return dialect as DbDialect;
+    // SQLite の場合、driver も抽出
+    let driver: SqliteDriver | undefined;
+    if (dialect === 'sqlite') {
+      const driverMatch = configContent.match(
+        /driver\s*:\s*['"]([^'"]+)['"]/
+      );
+      if (driverMatch) {
+        driver = driverMatch[1] as SqliteDriver;
+      }
+    }
+
+    return { dialect: dialect as DbDialect, driver };
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Database is not configured')) {
+    if (error instanceof Error && (
+      error.message.includes('Database is not configured') ||
+      error.message.includes('Unsupported database dialect')
+    )) {
       throw error;
     }
     throw new Error(
       `Failed to read kagaribi.config.ts. Please ensure the file exists at ${configPath}`
     );
   }
+}
+
+/**
+ * プロジェクトの kagaribi.config.ts からデータベース方言を検出する。
+ *
+ * @param projectRoot - プロジェクトルートディレクトリ
+ * @returns データベース方言
+ *
+ * @throws {Error} データベースが設定されていない場合、または設定ファイルの読み込みに失敗した場合
+ *
+ * @example
+ * ```typescript
+ * const dialect = await detectDbDialect('/path/to/project');
+ * // => 'postgresql' or 'mysql' or 'sqlite'
+ * ```
+ */
+export async function detectDbDialect(projectRoot: string): Promise<DbDialect> {
+  const config = await detectDbConfig(projectRoot);
+  return config.dialect;
 }
 
 /**

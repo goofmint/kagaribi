@@ -17,7 +17,7 @@ export const nodeAdapter: BuildAdapter = {
     ].join('\n');
   },
 
-  generateConfigs(_group: BuildGroup): GeneratedFile[] {
+  generateConfigs(_group: BuildGroup, _config?: import('../../types.js').KagaribiConfig): GeneratedFile[] {
     return [];
   },
 
