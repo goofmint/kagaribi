@@ -270,6 +270,135 @@ describe('initProject', () => {
     });
   });
 
+  describe('--db sqlite', () => {
+    describe('better-sqlite3 (default)', () => {
+      it('SQLite 用の DB ファイルが生成される（driver 未指定）', async () => {
+        const projectDir = await initProject({
+          parentDir: tempDir,
+          name: 'sqlite-app',
+          db: 'sqlite',
+        });
+
+        const schema = await readFile(resolve(projectDir, 'db', 'schema.ts'), 'utf-8');
+        expect(schema).toContain('sqliteTable');
+        expect(schema).toContain('drizzle-orm/sqlite-core');
+        expect(schema).toContain("integer('id').primaryKey({ autoIncrement: true })");
+
+        const index = await readFile(resolve(projectDir, 'db', 'index.ts'), 'utf-8');
+        expect(index).toContain('drizzle-orm/better-sqlite3');
+
+        const pkg = JSON.parse(
+          await readFile(resolve(projectDir, 'package.json'), 'utf-8')
+        );
+        expect(pkg.dependencies['better-sqlite3']).toBeDefined();
+        expect(pkg.devDependencies['@types/better-sqlite3']).toBeDefined();
+
+        const envExample = await readFile(resolve(projectDir, '.env.example'), 'utf-8');
+        expect(envExample).toContain('DATABASE_URL=sqlite.db');
+      });
+
+      it('driver=better-sqlite3 を明示指定', async () => {
+        const projectDir = await initProject({
+          parentDir: tempDir,
+          name: 'sqlite-better-app',
+          db: 'sqlite',
+          driver: 'better-sqlite3',
+        });
+
+        const config = await readFile(resolve(projectDir, 'kagaribi.config.ts'), 'utf-8');
+        expect(config).toContain("dialect: 'sqlite'");
+        expect(config).toContain("driver: 'better-sqlite3'");
+      });
+    });
+
+    describe('libsql', () => {
+      it('libsql ドライバー用のファイルが生成される', async () => {
+        const projectDir = await initProject({
+          parentDir: tempDir,
+          name: 'libsql-app',
+          db: 'sqlite',
+          driver: 'libsql',
+        });
+
+        const index = await readFile(resolve(projectDir, 'db', 'index.ts'), 'utf-8');
+        expect(index).toContain('drizzle-orm/libsql');
+        expect(index).toContain('authToken');
+
+        const pkg = JSON.parse(
+          await readFile(resolve(projectDir, 'package.json'), 'utf-8')
+        );
+        expect(pkg.dependencies['@libsql/client']).toBeDefined();
+
+        const envExample = await readFile(resolve(projectDir, '.env.example'), 'utf-8');
+        expect(envExample).toContain('DATABASE_URL=file:local.db');
+        expect(envExample).toContain('DATABASE_AUTH_TOKEN');
+      });
+    });
+
+    describe('d1', () => {
+      it('Cloudflare D1 ドライバー用のファイルが生成される', async () => {
+        const projectDir = await initProject({
+          parentDir: tempDir,
+          name: 'd1-app',
+          db: 'sqlite',
+          driver: 'd1',
+        });
+
+        const index = await readFile(resolve(projectDir, 'db', 'index.ts'), 'utf-8');
+        expect(index).toContain('drizzle-orm/d1');
+        expect(index).toContain('D1Database');
+        expect(index).toContain('initDb');
+
+        const pkg = JSON.parse(
+          await readFile(resolve(projectDir, 'package.json'), 'utf-8')
+        );
+        // D1 はドライバーパッケージ不要
+        expect(pkg.dependencies.pg).toBeUndefined();
+        expect(pkg.dependencies.mysql2).toBeUndefined();
+        expect(pkg.dependencies['better-sqlite3']).toBeUndefined();
+
+        const envExample = await readFile(resolve(projectDir, '.env.example'), 'utf-8');
+        expect(envExample).toContain('wrangler.json');
+        expect(envExample).toContain('d1_databases');
+      });
+    });
+
+    describe('sqlite-cloud', () => {
+      it('SQLite Cloud ドライバー用のファイルが生成される', async () => {
+        const projectDir = await initProject({
+          parentDir: tempDir,
+          name: 'sqlite-cloud-app',
+          db: 'sqlite',
+          driver: 'sqlite-cloud',
+        });
+
+        const index = await readFile(resolve(projectDir, 'db', 'index.ts'), 'utf-8');
+        expect(index).toContain('drizzle-orm/sqlite-cloud');
+
+        const pkg = JSON.parse(
+          await readFile(resolve(projectDir, 'package.json'), 'utf-8')
+        );
+        expect(pkg.dependencies['drizzle-orm']).toBe('beta');
+        expect(pkg.dependencies['@sqlitecloud/drivers']).toBeDefined();
+        expect(pkg.devDependencies['drizzle-kit']).toBe('beta');
+
+        const envExample = await readFile(resolve(projectDir, '.env.example'), 'utf-8');
+        expect(envExample).toContain('sqlitecloud://');
+      });
+    });
+
+    it('driver 指定が db=sqlite 以外の場合はエラー', async () => {
+      await expect(
+        initProject({
+          parentDir: tempDir,
+          name: 'invalid-driver-app',
+          db: 'postgresql',
+          driver: 'better-sqlite3',
+        })
+      ).rejects.toThrow('driver option can only be used with db="sqlite"');
+    });
+  });
+
   it('db未指定の場合 DB ファイルが生成されない', async () => {
     const projectDir = await initProject({
       parentDir: tempDir,

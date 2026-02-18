@@ -53,7 +53,7 @@ export async function deployProject(
     : resolved;
 
   // BuildPlan 生成
-  const plan = createBuildPlan(projectRoot, adjustedResolved, environment ?? 'default');
+  const plan = createBuildPlan(projectRoot, adjustedResolved, environment ?? 'default', config);
 
   // デプロイ対象グループを決定
   const groupsToDeploy = filterGroupsForDeploy(plan.groups, packageName, target);

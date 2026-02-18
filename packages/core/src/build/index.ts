@@ -39,7 +39,7 @@ export async function buildProject(options: BuildProjectOptions): Promise<void> 
   const resolved = resolvePackages(scanned, config, environment);
 
   // 3. BuildPlan 生成
-  const plan = createBuildPlan(projectRoot, resolved, environment ?? 'default');
+  const plan = createBuildPlan(projectRoot, resolved, environment ?? 'default', config);
 
   console.log(`Building ${plan.groups.length} group(s) for "${plan.environment}" environment...`);
 
@@ -90,7 +90,7 @@ async function buildGroup(
   });
 
   // 4. 追加設定ファイル（wrangler.toml, Dockerfile等）を出力
-  const configs = adapter.generateConfigs(group);
+  const configs = adapter.generateConfigs(group, plan.config);
   await Promise.all(
     configs.map((file) =>
       writeFile(resolve(groupOutDir, file.filename), file.content, 'utf-8')

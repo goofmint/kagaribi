@@ -2,12 +2,14 @@
  * データベース接続ヘルパーを作成する。
  * シングルトンパターンでデータベース接続を管理し、重複初期化を防ぐ。
  *
+ * @template TDb - データベース接続オブジェクトの型
+ * @template TSource - データベースソースの型（デフォルト: string）
  * @param createConnection - データベース接続を作成する関数
  * @returns initDb, getDb 関数を含むオブジェクト
  *
  * @example
  * ```typescript
- * // db/index.ts
+ * // URL ベースの接続（PostgreSQL, MySQL, SQLite）
  * import { drizzle } from 'drizzle-orm/node-postgres';
  * import { createDbHelper } from '@kagaribi/core';
  * import * as schema from './schema';
@@ -19,35 +21,35 @@
  *
  * @example
  * ```typescript
- * // Neon Serverless (Cloudflare Workers向け)
- * import { drizzle } from 'drizzle-orm/neon-http';
- * import { neon } from '@neondatabase/serverless';
+ * // バインディングベースの接続（Cloudflare D1）
+ * import { drizzle } from 'drizzle-orm/d1';
  * import { createDbHelper } from '@kagaribi/core';
  * import * as schema from './schema';
  *
- * const { initDb, getDb } = createDbHelper((url) => {
- *   const sql = neon(url);
- *   return drizzle(sql, { schema });
- * });
+ * const { initDb, getDb } = createDbHelper<ReturnType<typeof drizzle>, D1Database>(
+ *   (d1) => drizzle(d1, { schema })
+ * );
  *
  * export { initDb, getDb, schema };
  * ```
  */
-export function createDbHelper<TDb>(
-  createConnection: (databaseUrl: string) => TDb
+export function createDbHelper<TDb, TSource = string>(
+  createConnection: (source: TSource) => TDb
 ) {
   let _db: TDb | undefined;
 
   /**
    * データベース接続を初期化する。
    * 既に初期化済みの場合は何もしない（冪等性）。
+   *
+   * @param source - データベースソース（URL 文字列またはバインディングオブジェクト）
    */
-  function initDb(databaseUrl: string): void {
+  function initDb(source: TSource): void {
     if (_db) return;
-    if (!databaseUrl) {
-      throw new Error('DATABASE_URL is required.');
+    if (!source) {
+      throw new Error('Database source is required.');
     }
-    _db = createConnection(databaseUrl);
+    _db = createConnection(source);
   }
 
   /**

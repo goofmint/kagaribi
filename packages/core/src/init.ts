@@ -1,7 +1,7 @@
 import { resolve, basename } from 'node:path';
 import { mkdir, writeFile, stat } from 'node:fs/promises';
 import { scaffoldPackage } from './scaffold.js';
-import type { DbDialect, DeployTarget } from './types.js';
+import type { DbDialect, DeployTarget, SqliteDriver } from './types.js';
 import {
   getDbDependencies,
   generateDbSchema,
@@ -19,6 +19,8 @@ interface InitOptions {
   target?: DeployTarget;
   /** データベース方言（指定しない場合はDB無し） */
   db?: DbDialect;
+  /** SQLite ドライバー（db='sqlite' の場合のみ使用） */
+  driver?: SqliteDriver;
 }
 
 /**
@@ -44,7 +46,7 @@ function validateProjectName(name: string): void {
 /**
  * package.json テンプレートを生成する。
  */
-function generatePackageJson(name: string, db?: DbDialect): string {
+function generatePackageJson(name: string, db?: DbDialect, driver?: SqliteDriver): string {
   const baseDeps: Record<string, string> = {
     '@kagaribi/core': '^0.1.0',
     '@kagaribi/cli': '^0.1.0',
@@ -56,7 +58,7 @@ function generatePackageJson(name: string, db?: DbDialect): string {
   };
 
   if (db) {
-    const dbDeps = getDbDependencies(db);
+    const dbDeps = getDbDependencies(db, driver);
     Object.assign(baseDeps, dbDeps.deps);
     Object.assign(baseDevDeps, dbDeps.devDeps);
   }
@@ -90,10 +92,15 @@ function generatePackageJson(name: string, db?: DbDialect): string {
 /**
  * kagaribi.config.ts テンプレートを生成する。
  */
-function generateConfig(target: DeployTarget, db?: DbDialect): string {
-  const dbSection = db
-    ? `\n  db: {\n    dialect: '${db}',\n  },`
-    : '';
+function generateConfig(target: DeployTarget, db?: DbDialect, driver?: SqliteDriver): string {
+  let dbSection = '';
+  if (db) {
+    if (driver) {
+      dbSection = `\n  db: {\n    dialect: '${db}',\n    driver: '${driver}',\n  },`;
+    } else {
+      dbSection = `\n  db: {\n    dialect: '${db}',\n  },`;
+    }
+  }
 
   return `import { defineConfig } from '@kagaribi/core';
 
@@ -180,9 +187,14 @@ export default app;
  * @returns 作成されたプロジェクトディレクトリの絶対パス
  */
 export async function initProject(options: InitOptions): Promise<string> {
-  let { parentDir, name, target = 'node', db } = options;
+  let { parentDir, name, target = 'node', db, driver } = options;
 
   validateProjectName(name);
+
+  // SQLite 以外で driver が指定された場合はエラー
+  if (driver && db !== 'sqlite') {
+    throw new Error('driver option can only be used with db="sqlite"');
+  }
 
   // "." の場合、parentDirをプロジェクトディレクトリとし、nameはディレクトリ名から取得
   const isCurrentDir = name === '.';
@@ -229,16 +241,16 @@ export async function initProject(options: InitOptions): Promise<string> {
 
   // ルートレベルのファイルを並列生成
   const rootFiles: Promise<void>[] = [
-    writeFile(resolve(projectDir, 'package.json'), generatePackageJson(name, db), 'utf-8'),
-    writeFile(resolve(projectDir, 'kagaribi.config.ts'), generateConfig(target, db), 'utf-8'),
+    writeFile(resolve(projectDir, 'package.json'), generatePackageJson(name, db, driver), 'utf-8'),
+    writeFile(resolve(projectDir, 'kagaribi.config.ts'), generateConfig(target, db, driver), 'utf-8'),
     writeFile(resolve(projectDir, 'tsconfig.json'), generateTsConfig(db), 'utf-8'),
     writeFile(resolve(projectDir, '.gitignore'), generateGitignore(db), 'utf-8'),
   ];
 
   if (db) {
     rootFiles.push(
-      writeFile(resolve(projectDir, 'drizzle.config.ts'), generateDrizzleConfig(db), 'utf-8'),
-      writeFile(resolve(projectDir, '.env.example'), generateEnvExample(db), 'utf-8'),
+      writeFile(resolve(projectDir, 'drizzle.config.ts'), generateDrizzleConfig(db, driver), 'utf-8'),
+      writeFile(resolve(projectDir, '.env.example'), generateEnvExample(db, driver), 'utf-8'),
     );
   }
 
@@ -249,8 +261,8 @@ export async function initProject(options: InitOptions): Promise<string> {
     const dbDir = resolve(projectDir, 'db');
     await mkdir(dbDir, { recursive: true });
     await Promise.all([
-      writeFile(resolve(dbDir, 'schema.ts'), generateDbSchema(db), 'utf-8'),
-      writeFile(resolve(dbDir, 'index.ts'), generateDbIndex(db), 'utf-8'),
+      writeFile(resolve(dbDir, 'schema.ts'), generateDbSchema(db, driver), 'utf-8'),
+      writeFile(resolve(dbDir, 'index.ts'), generateDbIndex(db, driver), 'utf-8'),
     ]);
   }
 

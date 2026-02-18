@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 export {};
 
-import type { DbDialect, DeployTarget } from '@kagaribi/core';
+import type { DbDialect, DeployTarget, SqliteDriver } from '@kagaribi/core';
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -24,10 +24,10 @@ function getEnvFlag(): string | undefined {
 
 /**
  * --db フラグの値を取得する。
- * 形式: --db postgresql, --db=mysql
+ * 形式: --db postgresql, --db=mysql, --db sqlite
  */
 function getDbFlag(): DbDialect | undefined {
-  const validDialects: DbDialect[] = ['postgresql', 'mysql'];
+  const validDialects: DbDialect[] = ['postgresql', 'mysql', 'sqlite'];
 
   const eqIdx = args.findIndex((a) => a.startsWith('--db='));
   if (eqIdx !== -1) {
@@ -46,6 +46,36 @@ function getDbFlag(): DbDialect | undefined {
       return value as DbDialect;
     }
     console.error(`Invalid --db value: "${value}". Valid options: ${validDialects.join(', ')}`);
+    process.exit(1);
+  }
+
+  return undefined;
+}
+
+/**
+ * --driver フラグの値を取得する。
+ * 形式: --driver better-sqlite3, --driver=libsql
+ */
+function getDriverFlag(): SqliteDriver | undefined {
+  const validDrivers: SqliteDriver[] = ['better-sqlite3', 'libsql', 'd1', 'sqlite-cloud'];
+
+  const eqIdx = args.findIndex((a) => a.startsWith('--driver='));
+  if (eqIdx !== -1) {
+    const value = args[eqIdx].split('=')[1];
+    if (validDrivers.includes(value as SqliteDriver)) {
+      return value as SqliteDriver;
+    }
+    console.error(`Invalid --driver value: "${value}". Valid options: ${validDrivers.join(', ')}`);
+    process.exit(1);
+  }
+
+  const flagIdx = args.indexOf('--driver');
+  if (flagIdx !== -1 && args[flagIdx + 1] && !args[flagIdx + 1].startsWith('-')) {
+    const value = args[flagIdx + 1];
+    if (validDrivers.includes(value as SqliteDriver)) {
+      return value as SqliteDriver;
+    }
+    console.error(`Invalid --driver value: "${value}". Valid options: ${validDrivers.join(', ')}`);
     process.exit(1);
   }
 
@@ -78,12 +108,20 @@ function getTargetFlag(): DeployTarget | undefined {
       const { initCommand } = await import('./commands/init.js');
       const name = args[1];
       if (!name || name.startsWith('--')) {
-        console.error('Usage: kagaribi init <project-name> [--node|--cloudflare|--lambda|--cloudrun|--deno] [--db postgresql|mysql]');
+        console.error('Usage: kagaribi init <project-name> [--node|--cloudflare|--lambda|--cloudrun|--deno] [--db postgresql|mysql|sqlite] [--driver better-sqlite3|libsql|d1|sqlite-cloud]');
         process.exit(1);
       }
       const target = getTargetFlag();
       const db = getDbFlag();
-      await initCommand({ name, target, db });
+      const driver = getDriverFlag();
+
+      // バリデーション: driver は db=sqlite の時のみ有効
+      if (driver && db !== 'sqlite') {
+        console.error('Error: --driver can only be used with --db sqlite');
+        process.exit(1);
+      }
+
+      await initCommand({ name, target, db, driver });
       break;
     }
     case 'dev': {
@@ -165,12 +203,12 @@ function getTargetFlag(): DeployTarget | undefined {
       console.log(`kagaribi - Hono-based microservices framework
 
 Usage:
-  kagaribi init <name> [target flag] [--db dialect]  Initialize a new project
-  kagaribi dev [port]                                Start development server (default: 3000)
-  kagaribi build [--env name]                        Build for deployment
-  kagaribi new <name> [target flag]                   Create a new package
-  kagaribi model new <table> [field:type ...]        Generate a new model
-  kagaribi deploy [pkg] [target flag] [--env]        Deploy packages
+  kagaribi init <name> [target flag] [--db dialect] [--driver driver]  Initialize a new project
+  kagaribi dev [port]                                                  Start development server (default: 3000)
+  kagaribi build [--env name]                                          Build for deployment
+  kagaribi new <name> [target flag]                                    Create a new package
+  kagaribi model new <table> [field:type ...]                          Generate a new model
+  kagaribi deploy [pkg] [target flag] [--env]                          Deploy packages
 
 Target flags:
   --cloudflare    Cloudflare Workers
@@ -180,10 +218,12 @@ Target flags:
   --deno          Deno Deploy
 
 Options:
-  --db <dialect>  Add database support (postgresql, mysql)
-  --env <name>    Specify environment
-  --dry-run       Show deploy instructions without executing
-  --help          Show help
+  --db <dialect>      Add database support (postgresql, mysql, sqlite)
+  --driver <driver>   SQLite driver (better-sqlite3, libsql, d1, sqlite-cloud)
+                      Only valid with --db sqlite
+  --env <name>        Specify environment
+  --dry-run           Show deploy instructions without executing
+  --help              Show help
 `);
       break;
   }

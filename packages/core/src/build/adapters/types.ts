@@ -1,4 +1,4 @@
-import type { DeployTarget, ResolvedPackage } from '../../types.js';
+import type { DeployTarget, ResolvedPackage, KagaribiConfig } from '../../types.js';
 
 /** ビルドグループ: ホストパッケージ + co-locateされたパッケージ群 */
 export interface BuildGroup {
@@ -20,6 +20,8 @@ export interface BuildPlan {
   projectRoot: string;
   /** 環境名 */
   environment: string;
+  /** Kagaribi 設定 */
+  config: KagaribiConfig;
 }
 
 /** アダプタが生成するファイル */
@@ -37,7 +39,7 @@ export interface BuildAdapter {
   /** エントリーポイントコードを生成 */
   generateEntry(group: BuildGroup, appImportPath: string): string;
   /** 追加の設定ファイル（wrangler.toml, Dockerfile等）を生成 */
-  generateConfigs(group: BuildGroup): GeneratedFile[];
+  generateConfigs(group: BuildGroup, config?: KagaribiConfig): GeneratedFile[];
   /** デプロイ手順の説明テキスト */
   deployInstructions(group: BuildGroup): string;
   /** 実デプロイを実行し、デプロイ先URLを返す */

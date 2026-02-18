@@ -16,7 +16,7 @@ export const cloudRunAdapter: BuildAdapter = {
     ].join('\n');
   },
 
-  generateConfigs(group: BuildGroup): GeneratedFile[] {
+  generateConfigs(group: BuildGroup, _config?: import('../../types.js').KagaribiConfig): GeneratedFile[] {
     return [
       {
         filename: 'Dockerfile',

@@ -4,6 +4,7 @@ export { defineConfig, definePackage } from './define.js';
 // 型
 export type {
   DbDialect,
+  SqliteDriver,
   DeployTarget,
   PackageDefinition,
   PackageDeployConfig,
@@ -92,9 +93,10 @@ export {
   appendModelToSchema,
   parseFieldDefinitions,
   detectDbDialect,
+  detectDbConfig,
   generateModelHelper,
   writeModelHelper,
   updateModelIndex,
   SUPPORTED_FIELD_TYPES,
 } from './model.js';
-export type { SupportedFieldType, FieldDefinition, TableDefinition } from './model.js';
+export type { SupportedFieldType, FieldDefinition, TableDefinition, DbConfig } from './model.js';

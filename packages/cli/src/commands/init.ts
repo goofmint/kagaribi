@@ -1,12 +1,13 @@
 import { createInterface } from 'node:readline/promises';
 import { basename } from 'node:path';
 import { initProject, exec } from '@kagaribi/core';
-import type { DbDialect, DeployTarget } from '@kagaribi/core';
+import type { DbDialect, DeployTarget, SqliteDriver } from '@kagaribi/core';
 
 interface InitCommandOptions {
   name: string;
   target?: DeployTarget;
   db?: DbDialect;
+  driver?: SqliteDriver;
 }
 
 /**
@@ -29,10 +30,10 @@ async function askYesNo(question: string): Promise<boolean> {
 }
 
 export async function initCommand(options: InitCommandOptions): Promise<void> {
-  const { name, target, db } = options;
+  const { name, target, db, driver } = options;
   const parentDir = process.cwd();
 
-  const projectDir = await initProject({ parentDir, name, target, db });
+  const projectDir = await initProject({ parentDir, name, target, db, driver });
   const projectName = basename(projectDir);
 
   console.log(`\n✓ Project "${projectName}" created at ${projectDir}\n`);
@@ -55,14 +56,35 @@ export async function initCommand(options: InitCommandOptions): Promise<void> {
     }
   }
 
-  const dbSteps = db
-    ? `
+  let dbSteps = '';
+  if (db === 'sqlite') {
+    const driverName = driver || 'better-sqlite3';
+
+    if (driverName === 'd1') {
+      dbSteps = `
+Set up Cloudflare D1 database:
+  npx wrangler d1 create <database-name>  # Create D1 database
+  # Update wrangler.toml with database_id
+  npx drizzle-kit generate                # Generate migrations
+  npx wrangler d1 migrations apply <database-name> --local  # Apply locally
+  npx wrangler d1 migrations apply <database-name>          # Apply to production
+`;
+    } else {
+      dbSteps = `
+Set up database:
+  cp .env.example .env       # Edit DATABASE_URL${driverName === 'libsql' ? ' and DATABASE_AUTH_TOKEN (for Turso)' : ''}
+  npx drizzle-kit generate   # Generate migrations
+  npx drizzle-kit migrate    # Run migrations
+`;
+    }
+  } else if (db) {
+    dbSteps = `
 Set up database:
   cp .env.example .env       # Edit DATABASE_URL
   npx drizzle-kit generate   # Generate migrations
   npx drizzle-kit migrate    # Run migrations
-`
-    : '';
+`;
+  }
 
   const cdStep = name === '.' ? '' : `  cd ${projectName}\n`;
 

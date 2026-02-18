@@ -86,7 +86,7 @@ async function showDeployInstructions(options: DeployOptions): Promise<void> {
   const resolved = resolvePackages(scanned, config, options.env);
 
   // BuildPlan 生成
-  const plan = createBuildPlan(projectRoot, resolved, options.env ?? 'default');
+  const plan = createBuildPlan(projectRoot, resolved, options.env ?? 'default', config);
 
   console.log('Deploy instructions:\n');
 
