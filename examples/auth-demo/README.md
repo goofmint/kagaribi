@@ -446,45 +446,6 @@ authApp.use('*', envMiddleware);
 protectedApiApp.use('*', envMiddleware);
 ```
 
-## 詳細ドキュメント
-
-より詳しい情報は、以下のドキュメントを参照してください：
-
-### アーキテクチャとカスタマイズ
-
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - auth-demo のアーキテクチャ解説
-  - 全体アーキテクチャとパッケージ構成
-  - 認証フローの詳細図
-  - データフローとデプロイモード
-  - セキュリティ設計
-
-- **[CUSTOMIZATION.md](./CUSTOMIZATION.md)** - カスタマイズガイド
-  - データベース統合（PostgreSQL + Drizzle ORM）
-  - カスタム認証ロジック（OAuth、MFA）
-  - UI のカスタマイズ（React への移行、テーマシステム）
-  - エラーハンドリングの拡張
-  - 追加機能の実装（パスワードリセット、アクティビティログ）
-
-### 実装ガイド
-
-- **[docs/guides/authentication.md](../../docs/guides/authentication.md)** - Kagaribi における認証の基本概念
-  - 認証の設計原則
-  - ローカル開発と分離デプロイ
-  - コンテキスト伝播の仕組み
-  - セキュリティのベストプラクティス
-
-- **[docs/guides/jwt-authentication.md](../../docs/guides/jwt-authentication.md)** - JWT 認証の詳細ガイド
-  - JWT の構造と仕組み
-  - トークン発行と検証
-  - リフレッシュトークンの実装
-  - 環境変数の設定
-  - トラブルシューティング
-
-- **[docs/examples/auth-basic.md](../../docs/examples/auth-basic.md)** - 基本的な認証実装例
-  - 最小限の JWT 認証実装
-  - ステップバイステップの実装ガイド
-  - カスタマイズポイントの解説
-
 ## よくある質問（FAQ）
 
 ### Q: トークンの有効期限を変更するには？
@@ -501,14 +462,6 @@ const { accessToken, refreshToken } = await createTokenPair(
   }
 );
 ```
-
-### Q: データベースと連携するには？
-
-**A:** [CUSTOMIZATION.md](./CUSTOMIZATION.md) の「データベース統合」セクションを参照してください。PostgreSQL + Drizzle ORM を使った実装例を掲載しています。
-
-### Q: OAuth 認証を追加するには？
-
-**A:** [CUSTOMIZATION.md](./CUSTOMIZATION.md) の「カスタム認証ロジック」セクションに GitHub OAuth の実装例があります。
 
 ### Q: 本番環境ではどうすればいい？
 
