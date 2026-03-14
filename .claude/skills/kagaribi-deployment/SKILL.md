@@ -196,22 +196,22 @@ Configure in `wrangler.toml`:
 DATABASE_URL = "postgresql://..."
 ```
 
-**Cloudflare D1 を使う場合:**
+**Using Cloudflare D1:**
 
-D1 は環境変数ではなくバインディングとして設定する。`wrangler.toml` にバインディングを追加：
+D1 is configured as a binding (not an environment variable). Add the binding to `wrangler.toml`:
 
 ```toml
 [[d1_databases]]
-binding = "DB"             # コード内で c.env.DB として参照
+binding = "DB"             # Referenced in code as c.env.DB
 database_name = "my-database"
-database_id = "xxxx-xxxx-xxxx-xxxx"  # wrangler d1 create の出力から取得
+database_id = "xxxx-xxxx-xxxx-xxxx"  # Obtained from wrangler d1 create output
 ```
 
-マイグレーションは `wrangler d1 migrations apply` で実施（`drizzle-kit migrate` ではない）：
+Migrations must be applied using `wrangler d1 migrations apply` (not `drizzle-kit migrate`):
 
 ```bash
-npx wrangler d1 migrations apply my-database --local  # ローカル確認
-npx wrangler d1 migrations apply my-database          # 本番適用
+npx wrangler d1 migrations apply my-database --local  # Apply locally for testing
+npx wrangler d1 migrations apply my-database          # Apply to production
 ```
 
 ### AWS Lambda

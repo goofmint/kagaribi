@@ -322,19 +322,26 @@ app.get('/dashboard', async (c) => {
 
           <script>{`
             async function testSecretApi() {
+              const resultContainer = document.getElementById('api-result');
+              resultContainer.innerHTML = '';
+
               try {
                 const response = await fetch('/api/secret', {
                   credentials: 'include'
                 });
                 const data = await response.json();
 
-                document.getElementById('api-result').innerHTML =
-                  '<div class="api-response"><pre>' +
-                  JSON.stringify(data, null, 2) +
-                  '</pre></div>';
+                const responseDiv = document.createElement('div');
+                responseDiv.className = 'api-response';
+                const pre = document.createElement('pre');
+                pre.textContent = JSON.stringify(data, null, 2);
+                responseDiv.appendChild(pre);
+                resultContainer.appendChild(responseDiv);
               } catch (error) {
-                document.getElementById('api-result').innerHTML =
-                  '<div class="error">Failed to fetch API data</div>';
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.textContent = 'Failed to fetch API data';
+                resultContainer.appendChild(errorDiv);
               }
             }
           `}</script>

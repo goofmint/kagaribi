@@ -98,7 +98,7 @@ When a user wants to create a new project, gather these requirements:
 npx kagaribi init <name> [--db postgresql|mysql|sqlite] [--driver better-sqlite3|libsql|d1|sqlite-cloud] [--node|--cloudflare|--lambda|--cloudrun|--deno]
 ```
 
-**`--driver` は `--db sqlite` のときのみ有効。省略時のデフォルトは `better-sqlite3`。**
+**`--driver` is only valid when `--db sqlite` is used. The default when omitted is `better-sqlite3`.**
 
 **Examples:**
 ```bash

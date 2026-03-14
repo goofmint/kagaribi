@@ -234,9 +234,9 @@ export default app;
 
 ### With Cloudflare D1 (Binding-based)
 
-D1 は URL ではなくバインディングオブジェクトで接続するため、`isBinding: true` を指定する。
+D1 uses a binding object instead of a URL connection string, so set `isBinding: true`.
 
-**`db/index.ts` (D1 の場合)**
+**`db/index.ts` (for D1)**
 ```typescript
 import { drizzle } from 'drizzle-orm/d1';
 import { createDbHelper } from '@kagaribi/core';
@@ -249,20 +249,20 @@ const { initDb, getDb } = createDbHelper<ReturnType<typeof drizzle>, D1Database>
 export { initDb, getDb, schema };
 ```
 
-**パッケージコード**
+**Package code**
 ```typescript
 import { Hono } from 'hono';
 import { createDbMiddleware } from '@kagaribi/core';
 import { getDb, initDb, schema } from '../../../db/index.js';
 
-// Bindings の型定義
+// Bindings type definition
 type Env = { Bindings: { DB: D1Database } };
 
 const app = new Hono<Env>()
   .use('*', createDbMiddleware<D1Database>({
     initFn: initDb,
-    envVarName: 'DB',      // wrangler.toml のバインディング名
-    isBinding: true,        // バインディングオブジェクトとして渡す
+    envVarName: 'DB',      // Binding name from wrangler.toml
+    isBinding: true,        // Pass binding object directly to initFn (for D1)
   }))
 
   .get('/api/users', async (c) => {
@@ -275,10 +275,10 @@ export type UsersApp = typeof app;
 export default app;
 ```
 
-**`createDbMiddleware` オプション:**
-- `initFn` - DB 初期化関数
-- `envVarName` - 環境変数名またはバインディング名（デフォルト: `'DATABASE_URL'`）
-- `isBinding` - `true` にするとバインディングオブジェクトをそのまま `initFn` に渡す（D1 用）
+**`createDbMiddleware` options:**
+- `initFn` - Database initialization function
+- `envVarName` - Environment variable or binding name (default: `'DATABASE_URL'`)
+- `isBinding` - When `true`, passes binding object directly to `initFn` (for D1)
 
 ## Inter-Package Communication Rules
 

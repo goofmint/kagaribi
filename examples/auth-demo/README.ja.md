@@ -189,7 +189,7 @@ Authorization: Bearer <accessToken>
     "name": "Alice"
   },
   "secretData": {
-    "apiKey": "sk_test_1234567890",
+    "apiKey": "demo_api_key_placeholder",
     "plan": "premium",
     "quota": {
       "used": 42,

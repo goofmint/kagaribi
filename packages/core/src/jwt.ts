@@ -85,7 +85,7 @@ export { jwt, sign, verify, decode } from 'hono/jwt';
 
 import { sign } from 'hono/jwt';
 import type { Context } from 'hono';
-import type { KagaribiJwtPayload } from './types.js';
+import type { KagaribiJwtPayload, AuthContext } from './types.js';
 import { createContextHeaders } from './context.js';
 
 /**
@@ -172,7 +172,7 @@ export function getAuthPayloadFromContext<T extends KagaribiJwtPayload = Kagarib
  * ```
  */
 export async function createAuthContextHeaders(
-  payload: Record<string, unknown>,
+  payload: AuthContext,
   sharedSecret: string
 ): Promise<Record<string, string>> {
   return createContextHeaders(payload, sharedSecret);
@@ -215,7 +215,7 @@ export async function createAuthContextHeaders(
  * ```
  */
 export async function createTokenPair(
-  payload: Record<string, unknown>,
+  payload: KagaribiJwtPayload & { sub: string },
   secret: string,
   options?: {
     accessExpiresIn?: number;
@@ -226,6 +226,11 @@ export async function createTokenPair(
   refreshToken: string;
   expiresIn: number;
 }> {
+  // Runtime validation for sub
+  if (!payload?.sub || typeof payload.sub !== 'string') {
+    throw new Error('payload.sub is required and must be a string');
+  }
+
   const now = Math.floor(Date.now() / 1000);
   const accessExpiresIn = options?.accessExpiresIn ?? JWT_DEFAULTS.ACCESS_TOKEN_EXPIRES_IN;
   const refreshExpiresIn = options?.refreshExpiresIn ?? JWT_DEFAULTS.REFRESH_TOKEN_EXPIRES_IN;

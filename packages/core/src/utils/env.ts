@@ -61,8 +61,7 @@ export function createEnvMiddleware(
 ): MiddlewareHandler {
   return async (c, next) => {
     for (const [key, value] of Object.entries(envVars)) {
-      // @ts-ignore - c.env の型定義を動的に変更できないため
-      c.env[key] = value;
+      (c.env as Record<string, string | undefined>)[key] = value;
     }
     await next();
   };
