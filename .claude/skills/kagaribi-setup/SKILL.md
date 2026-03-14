@@ -1,5 +1,5 @@
 ---
-name: project-setup
+name: kagaribi-setup
 description: Initialize new Kagaribi projects with optional database and deployment target configuration
 ---
 
@@ -84,6 +84,7 @@ When a user wants to create a new project, gather these requirements:
    - None (API without persistence)
    - PostgreSQL (recommended for most projects)
    - MySQL (if specifically required)
+   - SQLite (local file, edge, or Cloudflare D1)
 3. **Deployment target** (can be changed later):
    - `node` - Traditional Node.js servers, VPS (default)
    - `cloudflare` - Cloudflare Workers (edge computing)
@@ -94,8 +95,10 @@ When a user wants to create a new project, gather these requirements:
 ## Command Syntax
 
 ```bash
-npx kagaribi init <name> [--db postgresql|mysql] [--node|--cloudflare|--lambda|--cloudrun|--deno]
+npx kagaribi init <name> [--db postgresql|mysql|sqlite] [--driver better-sqlite3|libsql|d1|sqlite-cloud] [--node|--cloudflare|--lambda|--cloudrun|--deno]
 ```
+
+**`--driver` は `--db sqlite` のときのみ有効。省略時のデフォルトは `better-sqlite3`。**
 
 **Examples:**
 ```bash
@@ -110,6 +113,12 @@ npx kagaribi init shop-api --db mysql --cloudflare
 
 # Project without database, targeting AWS Lambda
 npx kagaribi init webhook-handler --lambda
+
+# Project with Cloudflare D1 (SQLite on Cloudflare Workers)
+npx kagaribi init edge-api --db sqlite --driver d1 --cloudflare
+
+# Project with libsql (Turso)
+npx kagaribi init turso-api --db sqlite --driver libsql
 ```
 
 ## Generated Files
@@ -229,6 +238,28 @@ pnpm run dev
 - Cloudflare Workers-compatible setup
 - MySQL schema with Drizzle ORM
 - Environment configured for edge runtime
+
+### Scenario 4: Edge API with Cloudflare D1
+
+**User requirement:** "Build an API on Cloudflare Workers using D1 (SQLite)"
+
+**Commands:**
+```bash
+npx kagaribi init d1-api --db sqlite --driver d1 --cloudflare
+cd d1-api
+pnpm install
+npx wrangler d1 create my-database   # Create D1 database
+# Update wrangler.toml with database_id and binding name
+npx drizzle-kit generate              # Generate migrations
+npx wrangler d1 migrations apply my-database --local  # Apply locally
+pnpm run dev
+```
+
+**What you get:**
+- Cloudflare Workers setup with D1 binding
+- SQLite schema with Drizzle ORM (`drizzle-orm/d1`)
+- `wrangler.toml` with D1 binding configuration
+- No `DATABASE_URL` env var — uses D1 binding object instead
 
 ## Key Configuration Files
 

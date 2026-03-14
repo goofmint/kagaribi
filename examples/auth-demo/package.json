@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx serve.ts"
+    "dev": "tsx --env-file=.env serve.ts"
   },
   "dependencies": {
     "@kagaribi/core": "workspace:*",

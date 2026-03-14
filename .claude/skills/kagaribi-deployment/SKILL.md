@@ -1,5 +1,5 @@
 ---
-name: deployment
+name: kagaribi-deployment
 description: Build and deploy Kagaribi packages to cloud platforms with automatic URL tracking
 ---
 
@@ -194,6 +194,24 @@ Configure in `wrangler.toml`:
 ```toml
 [env.production.vars]
 DATABASE_URL = "postgresql://..."
+```
+
+**Cloudflare D1 を使う場合:**
+
+D1 は環境変数ではなくバインディングとして設定する。`wrangler.toml` にバインディングを追加：
+
+```toml
+[[d1_databases]]
+binding = "DB"             # コード内で c.env.DB として参照
+database_name = "my-database"
+database_id = "xxxx-xxxx-xxxx-xxxx"  # wrangler d1 create の出力から取得
+```
+
+マイグレーションは `wrangler d1 migrations apply` で実施（`drizzle-kit migrate` ではない）：
+
+```bash
+npx wrangler d1 migrations apply my-database --local  # ローカル確認
+npx wrangler d1 migrations apply my-database          # 本番適用
 ```
 
 ### AWS Lambda

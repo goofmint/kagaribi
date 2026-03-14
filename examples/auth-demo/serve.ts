@@ -1,6 +1,6 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
-import { mountAllLocal, registerLocalClient } from '@kagaribi/core';
+import { mountAllLocal, registerLocalClient, requireEnv, createEnvMiddleware } from '@kagaribi/core';
 
 // パッケージをインポート
 import authApp from './packages/auth/src/index.js';
@@ -8,32 +8,19 @@ import protectedApiApp from './packages/protected-api/src/index.js';
 import rootApp from './packages/root/src/index.js';
 
 // 環境変数の検証
-if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
-}
-if (!process.env.SHARED_SECRET) {
-  throw new Error('SHARED_SECRET environment variable is required');
-}
+const JWT_SECRET = requireEnv('JWT_SECRET');
+const SHARED_SECRET = requireEnv('SHARED_SECRET');
 
 // 環境変数を Hono の env に設定するミドルウェア
-// @ts-ignore - 型の不一致を回避
-const envMiddleware = (app) => {
-  // @ts-ignore - any 型を許可
-  app.use('*', async (c, next) => {
-    // Node.js 環境では process.env から環境変数を読み取り、c.env に設定
-    c.env = {
-      JWT_SECRET: process.env.JWT_SECRET!,
-      SHARED_SECRET: process.env.SHARED_SECRET!,
-    };
-    await next();
-  });
-  return app;
-};
+const envMiddleware = createEnvMiddleware({
+  JWT_SECRET,
+  SHARED_SECRET,
+});
 
 // 環境変数ミドルウェアを各アプリに適用
-envMiddleware(authApp);
-envMiddleware(protectedApiApp);
-envMiddleware(rootApp);
+authApp.use('*', envMiddleware);
+protectedApiApp.use('*', envMiddleware);
+rootApp.use('*', envMiddleware);
 
 // ローカルクライアントを登録（getClient で使用するため）
 // @ts-ignore - Variables 型の不一致を回避
@@ -54,7 +41,7 @@ const app = mountAllLocal([
 ]);
 
 // ルートアプリにも環境変数ミドルウェアを適用
-envMiddleware(app);
+app.use('*', envMiddleware);
 
 const port = Number.parseInt(process.env.PORT || '3000', 10);
 

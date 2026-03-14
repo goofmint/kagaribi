@@ -298,21 +298,339 @@ auth-demo/
    - サーバーサイドレンダリングによる UI 構築
    - フォーム処理と Cookie 管理
 
+## Kagaribi Core 認証機能の使用
+
+このデモでは、Kagaribi Core が提供する認証ユーティリティを活用しています。これらの機能を使うことで、認証実装のコードを大幅に簡潔にできます。
+
+### JWT_DEFAULTS 定数
+
+JWT トークンのデフォルト設定値を提供します：
+
+```typescript
+import { JWT_DEFAULTS } from '@kagaribi/core';
+
+// アクセストークンの有効期限: 15分（900秒）
+console.log(JWT_DEFAULTS.ACCESS_TOKEN_EXPIRES_IN); // 900
+
+// リフレッシュトークンの有効期限: 7日（604800秒）
+console.log(JWT_DEFAULTS.REFRESH_TOKEN_EXPIRES_IN); // 604800
+
+// JWT 署名アルゴリズム
+console.log(JWT_DEFAULTS.ALGORITHM); // 'HS256'
+```
+
+### createTokenPair() ヘルパー
+
+アクセストークンとリフレッシュトークンのペアを簡単に生成できます：
+
+```typescript
+import { createTokenPair } from '@kagaribi/core';
+
+// トークンペアを生成（auth パッケージで使用）
+const { accessToken, refreshToken, expiresIn } = await createTokenPair(
+  {
+    sub: user.id,
+    email: user.email,
+    name: user.name,
+    user: { id: user.id, email: user.email, name: user.name },
+  },
+  jwtSecret
+);
+
+// カスタム有効期限を指定することも可能
+const tokens = await createTokenPair(
+  { sub: user.id, user: { id: user.id } },
+  jwtSecret,
+  {
+    accessExpiresIn: 60 * 30,      // 30分
+    refreshExpiresIn: 60 * 60 * 24 * 30, // 30日
+  }
+);
+```
+
+**Before（手動実装）:**
+```typescript
+// 約15行のコード
+const ACCESS_TOKEN_EXPIRES_IN = 60 * 15;
+const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24 * 7;
+const now = Math.floor(Date.now() / 1000);
+
+const accessToken = await sign(
+  { sub: user.id, email: user.email, ..., iat: now, exp: now + ACCESS_TOKEN_EXPIRES_IN },
+  jwtSecret,
+  'HS256'
+);
+
+const refreshToken = await sign(
+  { sub: user.id, type: 'refresh', iat: now, exp: now + REFRESH_TOKEN_EXPIRES_IN },
+  jwtSecret,
+  'HS256'
+);
+```
+
+**After（createTokenPair 使用）:**
+```typescript
+// 約7行のコード（50% 削減）
+const { accessToken, refreshToken, expiresIn } = await createTokenPair(
+  {
+    sub: user.id,
+    email: user.email,
+    user: { id: user.id, email: user.email, name: user.name },
+  },
+  jwtSecret
+);
+```
+
+### requireEnv() ユーティリティ
+
+環境変数の取得と検証を簡潔に行えます：
+
+```typescript
+import { requireEnv } from '@kagaribi/core';
+
+// 環境変数を取得（存在しない場合はエラー）
+const JWT_SECRET = requireEnv('JWT_SECRET');
+const SHARED_SECRET = requireEnv('SHARED_SECRET');
+
+// デフォルト値を指定
+const PORT = requireEnv('PORT', '3000');
+```
+
+### createEnvMiddleware() ミドルウェア
+
+Node.js の `process.env` を Hono の `c.env` に設定するミドルウェアを生成します（Cloudflare Workers との互換性のため）：
+
+```typescript
+import { createEnvMiddleware, requireEnv } from '@kagaribi/core';
+
+const JWT_SECRET = requireEnv('JWT_SECRET');
+const SHARED_SECRET = requireEnv('SHARED_SECRET');
+
+// ミドルウェアを生成
+const envMiddleware = createEnvMiddleware({
+  JWT_SECRET,
+  SHARED_SECRET,
+});
+
+// すべてのパッケージに適用
+authApp.use('*', envMiddleware);
+protectedApiApp.use('*', envMiddleware);
+rootApp.use('*', envMiddleware);
+```
+
+**Before（手動実装）:**
+```typescript
+// 約17行のコード
+const createEnvMiddleware = (envVars: Record<string, string>) => {
+  return async (c: any, next: any) => {
+    for (const [key, value] of Object.entries(envVars)) {
+      c.env = c.env || {};
+      c.env[key] = value;
+    }
+    await next();
+  };
+};
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('JWT_SECRET is required');
+// ...
+```
+
+**After（Core ユーティリティ使用）:**
+```typescript
+// 約5行のコード（70% 削減）
+const JWT_SECRET = requireEnv('JWT_SECRET');
+const SHARED_SECRET = requireEnv('SHARED_SECRET');
+const envMiddleware = createEnvMiddleware({ JWT_SECRET, SHARED_SECRET });
+authApp.use('*', envMiddleware);
+protectedApiApp.use('*', envMiddleware);
+```
+
+## 詳細ドキュメント
+
+より詳しい情報は、以下のドキュメントを参照してください：
+
+### アーキテクチャとカスタマイズ
+
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - auth-demo のアーキテクチャ解説
+  - 全体アーキテクチャとパッケージ構成
+  - 認証フローの詳細図
+  - データフローとデプロイモード
+  - セキュリティ設計
+
+- **[CUSTOMIZATION.md](./CUSTOMIZATION.md)** - カスタマイズガイド
+  - データベース統合（PostgreSQL + Drizzle ORM）
+  - カスタム認証ロジック（OAuth、MFA）
+  - UI のカスタマイズ（React への移行、テーマシステム）
+  - エラーハンドリングの拡張
+  - 追加機能の実装（パスワードリセット、アクティビティログ）
+
+### 実装ガイド
+
+- **[docs/guides/authentication.md](../../docs/guides/authentication.md)** - Kagaribi における認証の基本概念
+  - 認証の設計原則
+  - ローカル開発と分離デプロイ
+  - コンテキスト伝播の仕組み
+  - セキュリティのベストプラクティス
+
+- **[docs/guides/jwt-authentication.md](../../docs/guides/jwt-authentication.md)** - JWT 認証の詳細ガイド
+  - JWT の構造と仕組み
+  - トークン発行と検証
+  - リフレッシュトークンの実装
+  - 環境変数の設定
+  - トラブルシューティング
+
+- **[docs/examples/auth-basic.md](../../docs/examples/auth-basic.md)** - 基本的な認証実装例
+  - 最小限の JWT 認証実装
+  - ステップバイステップの実装ガイド
+  - カスタマイズポイントの解説
+
+## よくある質問（FAQ）
+
+### Q: トークンの有効期限を変更するには？
+
+**A:** `createTokenPair()` のオプションで指定できます：
+
+```typescript
+const { accessToken, refreshToken } = await createTokenPair(
+  payload,
+  secret,
+  {
+    accessExpiresIn: 60 * 30,      // 30分
+    refreshExpiresIn: 60 * 60 * 24 * 30, // 30日
+  }
+);
+```
+
+### Q: データベースと連携するには？
+
+**A:** [CUSTOMIZATION.md](./CUSTOMIZATION.md) の「データベース統合」セクションを参照してください。PostgreSQL + Drizzle ORM を使った実装例を掲載しています。
+
+### Q: OAuth 認証を追加するには？
+
+**A:** [CUSTOMIZATION.md](./CUSTOMIZATION.md) の「カスタム認証ロジック」セクションに GitHub OAuth の実装例があります。
+
+### Q: 本番環境ではどうすればいい？
+
+**A:** 以下の点に注意してください：
+
+1. **環境変数の管理**
+   - `JWT_SECRET` と `SHARED_SECRET` は安全な方法で管理（AWS Secrets Manager、Cloudflare Workers Secrets など）
+   - 絶対にソースコードに含めないこと
+
+2. **HTTPS の使用**
+   - 本番環境では必ず HTTPS を使用
+   - Cloudflare Workers は自動的に HTTPS を提供
+
+3. **Cookie の設定**
+   - `httpOnly: true` に加えて `secure: true` を設定
+   - `sameSite: 'strict'` または `'lax'` を設定
+
+4. **レート制限**
+   - ログインエンドポイントにレート制限を実装
+   - Cloudflare では自動的に DDoS 保護が提供される
+
+詳細は [docs/guides/authentication.md](../../docs/guides/authentication.md) の「セキュリティのベストプラクティス」を参照してください。
+
+### Q: リフレッシュトークンはどう使う？
+
+**A:** アクセストークンの有効期限が切れた場合、リフレッシュトークンを使って新しいアクセストークンを取得します：
+
+```typescript
+// POST /auth/api/refresh
+const response = await fetch('/auth/api/refresh', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ refreshToken }),
+});
+
+const { accessToken, expiresIn } = await response.json();
+```
+
+詳細は [docs/guides/jwt-authentication.md](../../docs/guides/jwt-authentication.md) の「リフレッシュトークンの実装」を参照してください。
+
 ## トラブルシューティング
 
 ### ログインできない
 
-- `.env` ファイルに `JWT_SECRET` が設定されているか確認
-- デモ用認証情報が正しいか確認（README を参照）
+**原因:**
+- `.env` ファイルに `JWT_SECRET` が設定されていない
+- デモ用認証情報が間違っている
+- 開発サーバーが起動していない
+
+**解決方法:**
+1. `.env` ファイルが存在し、`JWT_SECRET` が設定されているか確認
+   ```bash
+   cat .env | grep JWT_SECRET
+   ```
+2. デモ用認証情報を確認（このREADME の「デモ用認証情報」セクション参照）
+3. 開発サーバーが起動しているか確認
+   ```bash
+   pnpm dev
+   ```
+
+### "JWT_SECRET environment variable is required" エラー
+
+**原因:**
+- 環境変数が読み込まれていない
+- `.env` ファイルが存在しない
+
+**解決方法:**
+1. `.env.example` をコピーして `.env` を作成
+   ```bash
+   cp .env.example .env
+   ```
+2. `.env` ファイルを編集して `JWT_SECRET` と `SHARED_SECRET` を設定
+3. `pnpm dev` で起動（`tsx --env-file=.env` が自動的に実行される）
 
 ### "Invalid context signature" エラー
 
-- 分離デプロイ時、`SHARED_SECRET` がすべてのパッケージで同じ値になっているか確認
+**原因:**
+- 分離デプロイ時、`SHARED_SECRET` がパッケージ間で異なる
+
+**解決方法:**
+- すべてのパッケージで `SHARED_SECRET` 環境変数が同じ値になっているか確認
+- Cloudflare Workers の場合、すべての Worker で同じ Secret を設定
 
 ### "Session expired" エラー
 
-- アクセストークンの有効期限が切れています。再度ログインしてください。
-- 有効期限はデフォルトで 15 分です（`auth/src/index.ts` で変更可能）
+**原因:**
+- アクセストークンの有効期限が切れている（デフォルト: 15分）
+
+**解決方法:**
+1. 再度ログインする
+2. 有効期限を延長したい場合は `createTokenPair()` のオプションで変更
+   ```typescript
+   const tokens = await createTokenPair(payload, secret, {
+     accessExpiresIn: 60 * 60, // 1時間に延長
+   });
+   ```
+
+### "Unauthorized" エラー（Protected API）
+
+**原因:**
+- JWT トークンが送信されていない
+- JWT トークンが無効または期限切れ
+- `Authorization` ヘッダーの形式が間違っている
+
+**解決方法:**
+1. `Authorization: Bearer <token>` ヘッダーが正しく送信されているか確認
+2. トークンの有効期限を確認（jwt.io でデコード可能）
+3. 再度ログインして新しいトークンを取得
+
+### より詳しいトラブルシューティング
+
+以下のドキュメントも参照してください：
+
+- **[docs/guides/jwt-authentication.md](../../docs/guides/jwt-authentication.md)** - JWT 認証のトラブルシューティングセクション
+  - トークン検証エラーの原因と解決方法
+  - 環境変数設定のトラブルシューティング
+  - ローカル開発と分離デプロイの問題解決
+
+- **[docs/guides/authentication.md](../../docs/guides/authentication.md)** - セキュリティのベストプラクティス
+  - シークレットの管理方法
+  - トークンの保存方法
+  - エラーハンドリングのパターン
 
 ## ライセンス
 

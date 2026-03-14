@@ -151,3 +151,48 @@ export interface KagaribiJwtPayload {
   /** Kagaribi で伝播するユーザー情報 */
   user?: AuthUser;
 }
+
+/**
+ * 認証コンテキスト情報。
+ *
+ * JWT ペイロードとユーザー情報を含む、認証状態の統合型。
+ * Hono コンテキストに `c.set('authContext', ...)` で格納して使用することを想定。
+ *
+ * @example
+ * ```typescript
+ * import type { AuthContext } from '@kagaribi/core';
+ * import { getAuthPayloadFromContext } from '@kagaribi/core';
+ *
+ * app.use('/api/*', async (c, next) => {
+ *   const jwtPayload = getAuthPayloadFromContext(c);
+ *   if (jwtPayload) {
+ *     const authContext: AuthContext = {
+ *       user: jwtPayload.user,
+ *       jwtPayload,
+ *       tokenType: 'access',
+ *       issuedAt: jwtPayload.iat as number,
+ *       expiresAt: jwtPayload.exp as number,
+ *     };
+ *     c.set('authContext', authContext);
+ *   }
+ *   await next();
+ * });
+ *
+ * app.get('/profile', (c) => {
+ *   const authContext = c.get('authContext') as AuthContext;
+ *   return c.json({ user: authContext.user });
+ * });
+ * ```
+ */
+export interface AuthContext {
+  /** 認証済みユーザー情報 */
+  user?: AuthUser;
+  /** JWT ペイロード */
+  jwtPayload?: KagaribiJwtPayload;
+  /** トークンタイプ（access または refresh） */
+  tokenType?: 'access' | 'refresh';
+  /** トークン発行時刻（Unix timestamp、秒単位） */
+  issuedAt?: number;
+  /** トークン有効期限（Unix timestamp、秒単位） */
+  expiresAt?: number;
+}

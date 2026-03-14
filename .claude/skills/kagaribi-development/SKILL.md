@@ -1,5 +1,5 @@
 ---
-name: development
+name: kagaribi-development
 description: Create packages, generate models, and develop Kagaribi applications locally
 ---
 
@@ -195,7 +195,7 @@ export type ItemsApp = typeof app;
 export default app;
 ```
 
-### With Database Access
+### With Database Access (URL-based: PostgreSQL / MySQL / SQLite)
 
 ```typescript
 import { Hono } from 'hono';
@@ -231,6 +231,54 @@ export default app;
 - Auto-detects Node.js (`process.env.DATABASE_URL`) or Cloudflare Workers (`c.env.DATABASE_URL`)
 - Calls `initDb()` with connection string
 - Ensures single initialization (idempotent)
+
+### With Cloudflare D1 (Binding-based)
+
+D1 は URL ではなくバインディングオブジェクトで接続するため、`isBinding: true` を指定する。
+
+**`db/index.ts` (D1 の場合)**
+```typescript
+import { drizzle } from 'drizzle-orm/d1';
+import { createDbHelper } from '@kagaribi/core';
+import * as schema from './schema.js';
+
+const { initDb, getDb } = createDbHelper<ReturnType<typeof drizzle>, D1Database>(
+  (d1) => drizzle(d1, { schema })
+);
+
+export { initDb, getDb, schema };
+```
+
+**パッケージコード**
+```typescript
+import { Hono } from 'hono';
+import { createDbMiddleware } from '@kagaribi/core';
+import { getDb, initDb, schema } from '../../../db/index.js';
+
+// Bindings の型定義
+type Env = { Bindings: { DB: D1Database } };
+
+const app = new Hono<Env>()
+  .use('*', createDbMiddleware<D1Database>({
+    initFn: initDb,
+    envVarName: 'DB',      // wrangler.toml のバインディング名
+    isBinding: true,        // バインディングオブジェクトとして渡す
+  }))
+
+  .get('/api/users', async (c) => {
+    const db = getDb();
+    const users = await db.select().from(schema.users);
+    return c.json(users);
+  });
+
+export type UsersApp = typeof app;
+export default app;
+```
+
+**`createDbMiddleware` オプション:**
+- `initFn` - DB 初期化関数
+- `envVarName` - 環境変数名またはバインディング名（デフォルト: `'DATABASE_URL'`）
+- `isBinding` - `true` にするとバインディングオブジェクトをそのまま `initFn` に渡す（D1 用）
 
 ## Inter-Package Communication Rules
 

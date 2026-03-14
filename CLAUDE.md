@@ -41,9 +41,9 @@ kagaribi deploy [pkg] [target] [--env]    # Deploy packages to cloud platforms
 
 This repository includes specialized Claude skills for common workflows:
 
-- **`.claude/skills/project-setup/`** - Initialize new projects and configure databases
-- **`.claude/skills/development/`** - Create packages, write code, and test locally
-- **`.claude/skills/deployment/`** - Build, deploy, and manage cloud deployments
+- **`.claude/skills/kagaribi-setup/`** - Initialize new projects and configure databases
+- **`.claude/skills/kagaribi-development/`** - Create packages, write code, and test locally
+- **`.claude/skills/kagaribi-deployment/`** - Build, deploy, and manage cloud deployments
 
 Each skill directory contains a `SKILL.md` file with detailed guidance for that workflow.
 

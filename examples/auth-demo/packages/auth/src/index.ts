@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { sign, jwt, verify } from '@kagaribi/core';
+import { sign, jwt, verify, createTokenPair, JWT_DEFAULTS } from '@kagaribi/core';
 
 type Bindings = {
   JWT_SECRET: string;
@@ -13,8 +13,8 @@ const DEMO_USERS = [
   { id: 'user2', email: 'bob@example.com', password: 'password456', name: 'Bob' },
 ];
 
-const ACCESS_TOKEN_EXPIRES_IN = 60 * 15; // 15 minutes
-const REFRESH_TOKEN_EXPIRES_IN = 60 * 60 * 24 * 7; // 7 days
+type DemoUser = typeof DEMO_USERS[number];
+type SafeUser = Omit<DemoUser, 'password'>;
 
 /**
  * JWT シークレットを取得するヘルパー関数
@@ -25,6 +25,17 @@ function getJwtSecret(env: Bindings): string {
     throw new Error('JWT_SECRET environment variable is required');
   }
   return env.JWT_SECRET;
+}
+
+/**
+ * パスワードを除いた安全なユーザーオブジェクトを生成
+ */
+function toSafeUser(user: DemoUser): SafeUser {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+  };
 }
 
 /**
@@ -42,47 +53,23 @@ app.post('/api/login', async (c) => {
     return c.json({ error: 'Invalid credentials' }, 401);
   }
 
-  const now = Math.floor(Date.now() / 1000);
-
-  // アクセストークンを生成
-  const accessToken = await sign(
+  // アクセストークンとリフレッシュトークンを生成
+  const safeUser = toSafeUser(user);
+  const { accessToken, refreshToken, expiresIn } = await createTokenPair(
     {
       sub: user.id,
       email: user.email,
       name: user.name,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
-      iat: now,
-      exp: now + ACCESS_TOKEN_EXPIRES_IN,
+      user: safeUser,
     },
-    jwtSecret,
-    'HS256'
-  );
-
-  // リフレッシュトークンを生成
-  const refreshToken = await sign(
-    {
-      sub: user.id,
-      type: 'refresh',
-      iat: now,
-      exp: now + REFRESH_TOKEN_EXPIRES_IN,
-    },
-    jwtSecret,
-    'HS256'
+    jwtSecret
   );
 
   return c.json({
     accessToken,
     refreshToken,
-    expiresIn: ACCESS_TOKEN_EXPIRES_IN,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-    },
+    expiresIn,
+    user: safeUser,
   });
 });
 
@@ -112,6 +99,7 @@ app.post('/api/refresh', async (c) => {
       return c.json({ error: 'User not found' }, 404);
     }
 
+    const safeUser = toSafeUser(user);
     const now = Math.floor(Date.now() / 1000);
 
     // 新しいアクセストークンを生成
@@ -120,21 +108,17 @@ app.post('/api/refresh', async (c) => {
         sub: user.id,
         email: user.email,
         name: user.name,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        },
+        user: safeUser,
         iat: now,
-        exp: now + ACCESS_TOKEN_EXPIRES_IN,
+        exp: now + JWT_DEFAULTS.ACCESS_TOKEN_EXPIRES_IN,
       },
       jwtSecret,
-      'HS256'
+      JWT_DEFAULTS.ALGORITHM
     );
 
     return c.json({
       accessToken,
-      expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+      expiresIn: JWT_DEFAULTS.ACCESS_TOKEN_EXPIRES_IN,
     });
   } catch (error) {
     return c.json({ error: 'Invalid refresh token' }, 401);
