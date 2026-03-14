@@ -1,6 +1,6 @@
 # マルチパッケージ認証の実装例
 
-このガイドでは、Kagaribi の複数パッケージ間で認証を実装する方法を説明します。認証パッケージと Protected API パッケージを分離し、コンテキスト伝播を使って認証情報を安全に転送します。
+このガイドでは、Kagaribi の複数パッケージ間で認証を実装する方法を説明します。認証パッケージと API パッケージを分離し、コンテキスト伝播を使って認証情報を安全に転送します。
 
 ## 目次
 
@@ -8,7 +8,7 @@
 - [パッケージ構成](#パッケージ構成)
 - [プロジェクトのセットアップ](#プロジェクトのセットアップ)
 - [認証パッケージの実装](#認証パッケージの実装)
-- [Protected API パッケージの実装](#protected-api-パッケージの実装)
+- [API パッケージの実装](#api-パッケージの実装)
 - [Gateway パッケージの実装](#gateway-パッケージの実装)
 - [ローカル開発設定](#ローカル開発設定)
 - [分離デプロイ設定](#分離デプロイ設定)
@@ -30,8 +30,8 @@
          │                     │
          ▼                     ▼
 ┌────────────────┐    ┌──────────────────┐
-│  Auth Package  │    │ Protected API    │
-│                │    │ Package          │
+│  Auth Package  │    │  API Package     │
+│                │    │                  │
 │ - POST /login  │    │ - GET /profile   │
 │ - POST /refresh│    │ - GET /data      │
 └────────────────┘    └──────────────────┘
@@ -72,7 +72,7 @@ cd my-auth-app
 # Auth パッケージ
 kagaribi new auth
 
-# Protected API パッケージ
+# API パッケージ
 kagaribi new api
 
 # Gateway は root パッケージとして既に存在するため、そのまま使用
@@ -235,7 +235,7 @@ export default definePackage({
 
 ---
 
-## Protected API パッケージの実装
+## API パッケージの実装
 
 ### `packages/api/src/index.ts`
 
@@ -401,7 +401,7 @@ app.get('/dashboard', async (c) => {
     return c.redirect('/login');
   }
 
-  // Protected API からプロフィール取得
+  // API からプロフィール取得
   const response = await apiClient['/api/profile'].$get(
     {},
     {
@@ -635,7 +635,7 @@ curl http://localhost:3000/api/data \
    - リフレッシュトークンの実装
    - トークン検証
 
-2. **Protected API パッケージ (`api`)**
+2. **API パッケージ (`api`)**
    - JWT 検証ミドルウェア
    - コンテキスト伝播ミドルウェア（分離デプロイ対応）
    - 認証済みユーザー情報の取得
