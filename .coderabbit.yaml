@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://www.coderabbit.ai/integrations/schema.v2.json
+language: "ja"
+reviews:
+  fail_commit_status: true
+  high_level_summary_instructions: "実装の概要と技術的な複雑さを簡潔に要約してください。何を実装したか、技術的な複雑さを明確に説明してください。"
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/dist/**"
+    - "!pnpm-lock.yaml"
+  path_instructions:
+    - path: "packages/**/*.ts"
+      instructions: |
+        - `any` や `unknown` 型の使用は禁止。検出された場合は必ず指摘すること。
+        - 型定義の欠落・不完全な型指定を指摘すること。
+        - セキュリティリスク（インジェクション、SSRF、過剰な権限付与など）を確認すること。
+    - path: "examples/**/*.sql"
+      instructions: |
+        - ロールバックパス（down マイグレーション相当）の存在を確認すること。
+        - 大規模テーブルへの ALTER TABLE 等の操作はダウンタイムリスクを警告すること。
+        - 外部キーや頻繁にクエリされるカラムへのインデックスの欠落を指摘すること。
+        - 必要な NOT NULL 制約やデフォルト値の欠落を指摘すること。
+    - path: "**/*.md"
+      instructions: |
+        - リンク切れを確認すること。
+        - 見出し階層の一貫性を確認すること。
+        - CLI コマンドやコードサンプルの正確性を確認すること。
+        - ドキュメントは英語で記述されているか確認すること（例外：明示的に日本語版として作成されたもの）。
+    - path: "packages/**/__tests__/**/*.ts"
+      instructions: |
+        - アサーションが形式的でなく実質的な検証を行っているか確認すること。
+        - テスト間に依存関係がないか確認すること。
+        - テスト内での `if` 分岐は禁止。フォールバック処理も禁止。

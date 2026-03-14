@@ -85,3 +85,69 @@ export interface RegisteredPackage {
   basePath: string;
   app: Hono;
 }
+
+// ===== JWT 認証関連の型定義 =====
+
+// Hono JWT ペイロード型の再エクスポート
+export type { JWTPayload } from 'hono/utils/jwt/types';
+
+/**
+ * アプリケーションで拡張可能なユーザー情報の基本型。
+ *
+ * この型は、JWT ペイロードに格納するユーザー情報のベース型として使用します。
+ * アプリケーション固有のフィールドを追加する場合は、この型を拡張してください。
+ *
+ * @example
+ * ```typescript
+ * // アプリケーション固有のユーザー型を定義
+ * interface MyAuthUser extends AuthUser {
+ *   permissions: string[];
+ *   organizationId: string;
+ * }
+ *
+ * // JWT ペイロードに含める
+ * const token = await sign({
+ *   sub: 'user123',
+ *   user: {
+ *     id: 'user123',
+ *     email: 'user@example.com',
+ *     permissions: ['read', 'write'],
+ *     organizationId: 'org456',
+ *   } satisfies MyAuthUser
+ * }, secret);
+ * ```
+ */
+export interface AuthUser {
+  /** ユーザーID */
+  id: string;
+  /** メールアドレス */
+  email?: string;
+  /** ユーザー名 */
+  name?: string;
+}
+
+/**
+ * Kagaribi で使用する JWT ペイロードの拡張型。
+ *
+ * Hono の標準 JWTPayload に加えて、ユーザー情報を含むペイロードを定義します。
+ * アプリケーション固有のフィールドを追加する場合は、AuthUser を拡張してください。
+ *
+ * @example
+ * ```typescript
+ * import { getAuthPayloadFromContext } from '@kagaribi/core';
+ *
+ * app.get('/profile', (c) => {
+ *   const payload = getAuthPayloadFromContext(c);
+ *   if (!payload?.user) {
+ *     return c.json({ error: 'Unauthorized' }, 401);
+ *   }
+ *   return c.json({ user: payload.user });
+ * });
+ * ```
+ */
+export interface KagaribiJwtPayload {
+  /** JWT 標準クレーム（sub, iat, exp など） */
+  [key: string]: unknown;
+  /** Kagaribi で伝播するユーザー情報 */
+  user?: AuthUser;
+}
