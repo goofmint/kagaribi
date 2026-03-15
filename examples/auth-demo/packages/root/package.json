@@ -1,0 +1,11 @@
+{
+  "name": "root",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.tsx",
+  "dependencies": {
+    "@kagaribi/core": "workspace:*",
+    "hono": "^4.7.11"
+  }
+}

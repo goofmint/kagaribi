@@ -8,7 +8,8 @@
     "dev": "pnpm -r --parallel dev",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "lint": "pnpm -r lint"
+    "lint": "pnpm -r lint",
+    "release": "pnpm build && pnpm -r publish --access public --no-git-checks"
   },
   "engines": {
     "node": ">=20.0.0"

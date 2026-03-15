@@ -12,6 +12,10 @@ export type {
   KagaribiConfig,
   ResolvedPackage,
   RegisteredPackage,
+  JWTPayload,
+  AuthUser,
+  KagaribiJwtPayload,
+  AuthContext,
 } from './types.js';
 
 // パッケージスキャン
@@ -42,6 +46,21 @@ export {
 
 // パスパラメータ伝播
 export { kagaribiParamsMiddleware } from './params.js';
+
+// 環境変数ユーティリティ
+export { requireEnv, createEnvMiddleware } from './utils/env.js';
+
+// JWT 認証統合
+export {
+  jwt,
+  sign,
+  verify,
+  decode,
+  getAuthPayloadFromContext,
+  createAuthContextHeaders,
+  JWT_DEFAULTS,
+  createTokenPair,
+} from './jwt.js';
 
 // プロジェクト初期化
 export { initProject } from './init.js';

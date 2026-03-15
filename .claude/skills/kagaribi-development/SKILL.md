@@ -1,5 +1,5 @@
 ---
-name: development
+name: kagaribi-development
 description: Create packages, generate models, and develop Kagaribi applications locally
 ---
 
@@ -195,7 +195,7 @@ export type ItemsApp = typeof app;
 export default app;
 ```
 
-### With Database Access
+### With Database Access (URL-based: PostgreSQL / MySQL / SQLite)
 
 ```typescript
 import { Hono } from 'hono';
@@ -231,6 +231,54 @@ export default app;
 - Auto-detects Node.js (`process.env.DATABASE_URL`) or Cloudflare Workers (`c.env.DATABASE_URL`)
 - Calls `initDb()` with connection string
 - Ensures single initialization (idempotent)
+
+### With Cloudflare D1 (Binding-based)
+
+D1 uses a binding object instead of a URL connection string, so set `isBinding: true`.
+
+**`db/index.ts` (for D1)**
+```typescript
+import { drizzle } from 'drizzle-orm/d1';
+import { createDbHelper } from '@kagaribi/core';
+import * as schema from './schema.js';
+
+const { initDb, getDb } = createDbHelper<ReturnType<typeof drizzle>, D1Database>(
+  (d1) => drizzle(d1, { schema })
+);
+
+export { initDb, getDb, schema };
+```
+
+**Package code**
+```typescript
+import { Hono } from 'hono';
+import { createDbMiddleware } from '@kagaribi/core';
+import { getDb, initDb, schema } from '../../../db/index.js';
+
+// Bindings type definition
+type Env = { Bindings: { DB: D1Database } };
+
+const app = new Hono<Env>()
+  .use('*', createDbMiddleware<D1Database>({
+    initFn: initDb,
+    envVarName: 'DB',      // Binding name from wrangler.toml
+    isBinding: true,        // Pass binding object directly to initFn (for D1)
+  }))
+
+  .get('/api/users', async (c) => {
+    const db = getDb();
+    const users = await db.select().from(schema.users);
+    return c.json(users);
+  });
+
+export type UsersApp = typeof app;
+export default app;
+```
+
+**`createDbMiddleware` options:**
+- `initFn` - Database initialization function
+- `envVarName` - Environment variable or binding name (default: `'DATABASE_URL'`)
+- `isBinding` - When `true`, passes binding object directly to `initFn` (for D1)
 
 ## Inter-Package Communication Rules
 

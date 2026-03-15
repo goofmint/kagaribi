@@ -1,5 +1,5 @@
 ---
-name: deployment
+name: kagaribi-deployment
 description: Build and deploy Kagaribi packages to cloud platforms with automatic URL tracking
 ---
 
@@ -194,6 +194,24 @@ Configure in `wrangler.toml`:
 ```toml
 [env.production.vars]
 DATABASE_URL = "postgresql://..."
+```
+
+**Using Cloudflare D1:**
+
+D1 is configured as a binding (not an environment variable). Add the binding to `wrangler.toml`:
+
+```toml
+[[d1_databases]]
+binding = "DB"             # Referenced in code as c.env.DB
+database_name = "my-database"
+database_id = "xxxx-xxxx-xxxx-xxxx"  # Obtained from wrangler d1 create output
+```
+
+Migrations must be applied using `wrangler d1 migrations apply` (not `drizzle-kit migrate`):
+
+```bash
+npx wrangler d1 migrations apply my-database --local  # Apply locally for testing
+npx wrangler d1 migrations apply my-database          # Apply to production
 ```
 
 ### AWS Lambda
