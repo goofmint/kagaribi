@@ -43,6 +43,7 @@ export {
   kagaribiContextMiddleware,
   createContextHeaders,
 } from './context.js';
+export type { JsonValue } from './context.js';
 
 // パスパラメータ伝播
 export { kagaribiParamsMiddleware } from './params.js';

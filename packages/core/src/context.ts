@@ -4,6 +4,20 @@ const CONTEXT_HEADER = 'X-Kagaribi-Context';
 const SIGNATURE_HEADER = 'X-Kagaribi-Signature';
 
 /**
+ * JSON-compatible primitive types
+ */
+type JsonPrimitive = string | number | boolean | null;
+
+/**
+ * JSON-compatible value types.
+ * Excludes functions, symbols, and other non-serializable values.
+ */
+export type JsonValue =
+  | JsonPrimitive
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+/**
  * テキストデータをHMAC-SHA256で署名する。
  */
 async function signData(data: string, secret: string): Promise<string> {
@@ -67,8 +81,12 @@ export function kagaribiContextMiddleware(
 /**
  * Honoコンテキストからリモート転送用のヘッダーを生成するユーティリティ。
  * プロキシミドルウェア内で使用する。
+ *
+ * @param contextData - JSON-serializable context data
+ * @param sharedSecret - Shared secret for signing
+ * @returns Headers object with context and signature
  */
-export async function createContextHeaders<T extends Record<string, unknown>>(
+export async function createContextHeaders<T extends Record<string, JsonValue>>(
   contextData: T,
   sharedSecret: string
 ): Promise<Record<string, string>> {
