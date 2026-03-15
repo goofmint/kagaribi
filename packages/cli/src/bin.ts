@@ -83,6 +83,24 @@ function getDriverFlag(): SqliteDriver | undefined {
 }
 
 /**
+ * --scope フラグの値を取得する。
+ * 形式: --scope <packagePath>, --scope=<packagePath>
+ */
+function getScopeFlag(): string | undefined {
+  const eqIdx = args.findIndex((a) => a.startsWith('--scope='));
+  if (eqIdx !== -1) {
+    return args[eqIdx].split('=')[1];
+  }
+
+  const flagIdx = args.indexOf('--scope');
+  if (flagIdx !== -1 && args[flagIdx + 1] && !args[flagIdx + 1].startsWith('-')) {
+    return args[flagIdx + 1];
+  }
+
+  return undefined;
+}
+
+/**
  * ターゲットフラグを取得する。
  * --cloudflare, --lambda, --cloudrun, --node, --deno
  */
@@ -165,10 +183,10 @@ function getTargetFlag(): DeployTarget | undefined {
         const { modelNewCommand } = await import('./commands/model.js');
         const tableName = args[2];
         if (!tableName || tableName.startsWith('--')) {
-          console.error('Usage: kagaribi model new <table-name> [field:type ...] [--db postgresql|mysql]');
+          console.error('Usage: kagaribi model new <table-name> [field:type ...] [--db postgresql|mysql] [--scope <packagePath>]');
           process.exit(1);
         }
-        // Extract field definitions (excluding --db flags and their values)
+        // Extract field definitions (excluding --db, --scope flags and their values)
         const fieldArgs: string[] = [];
         const startIndex = 3;
         for (let i = startIndex; i < args.length; i++) {
@@ -178,7 +196,7 @@ function getTargetFlag(): DeployTarget | undefined {
             const nextArg = args[i + 1];
             if (!nextArg || nextArg.startsWith('-')) {
               console.error('Error: --db flag requires a value (postgresql or mysql)');
-              console.error('Usage: kagaribi model new <table-name> [field:type ...] [--db postgresql|mysql]');
+              console.error('Usage: kagaribi model new <table-name> [field:type ...] [--db postgresql|mysql] [--scope <packagePath>]');
               process.exit(1);
             }
             // Skip --db and its value (next element)
@@ -189,10 +207,20 @@ function getTargetFlag(): DeployTarget | undefined {
             // Skip --db=value form
             continue;
           }
+          if (arg === '--scope') {
+            // Skip --scope and its value
+            i++;
+            continue;
+          }
+          if (arg.startsWith('--scope=')) {
+            // Skip --scope=value form
+            continue;
+          }
           fieldArgs.push(arg);
         }
         const db = getDbFlag();
-        await modelNewCommand({ name: tableName, fields: fieldArgs, db });
+        const scope = getScopeFlag();
+        await modelNewCommand({ name: tableName, fields: fieldArgs, db, scope });
       } else {
         console.error('Usage: kagaribi model new <table-name> [field:type ...]');
         process.exit(1);
