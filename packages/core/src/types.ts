@@ -12,7 +12,7 @@ export type DeployTarget =
 export type DbDialect = 'postgresql' | 'mysql' | 'sqlite';
 
 /** SQLite ドライバーの種類 */
-export type SqliteDriver = 'better-sqlite3' | 'libsql' | 'd1' | 'sqlite-cloud';
+export type SqliteDriver = 'libsql' | 'd1' | 'sqlite-cloud';
 
 /** パッケージマニフェスト定義 */
 export interface PackageDefinition {

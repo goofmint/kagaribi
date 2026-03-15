@@ -4,3 +4,4 @@ dist/
 .env
 drizzle/
 db/*.js
+.dev.vars

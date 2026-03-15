@@ -334,6 +334,7 @@ ${columnDefinitions.join('\n')}
  * @param tableName - テーブル名
  * @param fields - フィールド定義の配列
  * @param dialect - データベース方言
+ * @param dbDir - データベースディレクトリのパス（オプショナル、デフォルト: 'db'）
  *
  * @throws {Error} db ディレクトリが存在しない場合
  *
@@ -354,13 +355,15 @@ export async function appendModelToSchema(
   projectRoot: string,
   tableName: string,
   fields: FieldDefinition[],
-  dialect: DbDialect
+  dialect: DbDialect,
+  dbDir?: string
 ): Promise<void> {
-  const schemaPath = join(projectRoot, 'db', 'schema.ts');
+  const dbDirectory = dbDir ?? join(projectRoot, 'db');
+  const schemaPath = join(dbDirectory, 'schema.ts');
 
   // db ディレクトリの存在確認
   try {
-    await stat(join(projectRoot, 'db'));
+    await stat(dbDirectory);
   } catch {
     throw new Error(
       'db directory does not exist. Please run "kagaribi init --db <dialect>" first.'
@@ -669,6 +672,7 @@ export async function remove(id: number) {
  * @param tableName - テーブル名
  * @param fields - フィールド定義の配列
  * @param dialect - データベース方言
+ * @param dbDir - データベースディレクトリのパス（オプショナル、デフォルト: 'db'）
  *
  * @throws {Error} 同名ファイルが既に存在する場合
  *
@@ -686,9 +690,11 @@ export async function writeModelHelper(
   projectRoot: string,
   tableName: string,
   fields: FieldDefinition[],
-  dialect: DbDialect
+  dialect: DbDialect,
+  dbDir?: string
 ): Promise<void> {
-  const modelsDir = join(projectRoot, 'db', 'models');
+  const dbDirectory = dbDir ?? join(projectRoot, 'db');
+  const modelsDir = join(dbDirectory, 'models');
   const helperPath = join(modelsDir, `${tableName}.ts`);
 
   // db/models ディレクトリを作成
@@ -720,6 +726,7 @@ export async function writeModelHelper(
  *
  * @param projectRoot - プロジェクトルートディレクトリ
  * @param tableName - テーブル名
+ * @param dbDir - データベースディレクトリのパス（オプショナル、デフォルト: 'db'）
  *
  * @example
  * ```typescript
@@ -729,9 +736,11 @@ export async function writeModelHelper(
  */
 export async function updateModelIndex(
   projectRoot: string,
-  tableName: string
+  tableName: string,
+  dbDir?: string
 ): Promise<void> {
-  const indexPath = join(projectRoot, 'db', 'models', 'index.ts');
+  const dbDirectory = dbDir ?? join(projectRoot, 'db');
+  const indexPath = join(dbDirectory, 'models', 'index.ts');
   const exportStatement = `export * from './${tableName}.js';`;
 
   let existingContent = '';

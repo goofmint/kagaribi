@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import {
   detectDbDialect,
   parseFieldDefinitions,
@@ -14,6 +15,8 @@ interface ModelNewOptions {
   fields: string[];
   /** データベース方言オーバーライド */
   db?: DbDialect;
+  /** パッケージスコープ（相対パス） */
+  scope?: string;
 }
 
 /**
@@ -22,7 +25,10 @@ interface ModelNewOptions {
  */
 export async function modelNewCommand(options: ModelNewOptions): Promise<void> {
   const projectRoot = process.cwd();
-  const { name, fields, db } = options;
+  const { name, fields, db, scope } = options;
+
+  // scope が指定されている場合、dbDir を計算
+  const dbDir = scope ? join(projectRoot, scope, 'db') : undefined;
 
   try {
     // 1. データベース方言を検出（オーバーライドがある場合はそれを使用）
@@ -36,21 +42,25 @@ export async function modelNewCommand(options: ModelNewOptions): Promise<void> {
       console.log(`Detected dialect: ${dialect}`);
     }
 
+    if (scope) {
+      console.log(`Using scoped database directory: ${dbDir}`);
+    }
+
     // 2. フィールド定義をパース
     console.log(`Parsing field definitions...`);
     const parsedFields = parseFieldDefinitions(fields);
 
     // 3. schema.ts にモデルを追加
     console.log(`Adding model "${name}" to db/schema.ts...`);
-    await appendModelToSchema(projectRoot, name, parsedFields, dialect);
+    await appendModelToSchema(projectRoot, name, parsedFields, dialect, dbDir);
 
     // 4. モデルヘルパーファイルを生成
     console.log(`Generating model helper for "${name}"...`);
-    await writeModelHelper(projectRoot, name, parsedFields, dialect);
+    await writeModelHelper(projectRoot, name, parsedFields, dialect, dbDir);
 
     // 5. models/index.ts を更新
     console.log(`Updating db/models/index.ts...`);
-    await updateModelIndex(projectRoot, name);
+    await updateModelIndex(projectRoot, name, dbDir);
 
     // 6. 成功メッセージ
     console.log(`\n✓ Model "${name}" created successfully!`);

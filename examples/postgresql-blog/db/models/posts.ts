@@ -1,71 +1,64 @@
+import { ModelBase } from '@kagaribi/core';
 import { eq } from 'drizzle-orm';
-import { getDb } from '../index.js';
 import { posts } from '../schema.js';
 
 /**
  * Posts model helper.
  * Provides type-safe CRUD operations for the posts table.
  */
+export class Posts extends ModelBase {
+  /**
+   * Find all posts records.
+   */
+  static async findAll() {
+    return this.getDb().select().from(posts);
+  }
 
-/**
- * Find all posts records.
- */
-export async function findAll() {
-  const db = getDb();
-  return await db.select().from(posts);
-}
+  /**
+   * Find a posts record by ID.
+   */
+  static async findById(id: number) {
+    const [record] = await this.getDb()
+      .select()
+      .from(posts)
+      .where(eq(posts.id, id));
+    return record ?? null;
+  }
 
-/**
- * Find a posts record by ID.
- */
-export async function findById(id: number) {
-  const db = getDb();
-  const [record] = await db
-    .select()
-    .from(posts)
-    .where(eq(posts.id, id));
-  return record ?? null;
-}
+  /**
+   * Create a new posts record.
+   */
+  static async create(data: { title: string; content?: string | null }) {
+    const [created] = await this.getDb()
+      .insert(posts)
+      .values(data)
+      .returning();
+    return created;
+  }
 
+  /**
+   * Update a posts record by ID.
+   */
+  static async update(
+    id: number,
+    data: { title?: string; content?: string | null }
+  ) {
+    const [updated] = await this.getDb()
+      .update(posts)
+      .set(data)
+      .where(eq(posts.id, id))
+      .returning();
+    return updated ?? null;
+  }
 
-/**
- * Create a new posts record.
- */
-export async function create(
-  data: Pick<typeof posts.$inferInsert, 'title' | 'content'>
-) {
-  const db = getDb();
-  const [created] = await db
-    .insert(posts)
-    .values(data)
-    .returning();
-  return created;
-}
-
-/**
- * Update a posts record by ID.
- */
-export async function update(
-  id: number,
-  data: Partial<Pick<typeof posts.$inferInsert, 'title' | 'content'>>
-) {
-  const db = getDb();
-  const [updated] = await db
-    .update(posts)
-    .set(data)
-    .where(eq(posts.id, id))
-    .returning();
-  return updated ?? null;
-}
-
-/**
- * Remove a posts record by ID.
- */
-export async function remove(id: number) {
-  const db = getDb();
-  const [deleted] = await db
-    .delete(posts)
-    .where(eq(posts.id, id))
-    .returning();
-  return deleted ?? null;
+  /**
+   * Remove a posts record by ID.
+   */
+  static async remove(id: number) {
+    const [deleted] = await this.getDb()
+      .delete(posts)
+      .where(eq(posts.id, id))
+      .returning();
+    return deleted ?? null;
+  }
 }

@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
-import { createDbMiddleware } from '@kagaribi/core';
-import { initDb } from '../../../db/index.js';
-import * as Posts from '../../../db/models/posts.js';
+import { createDb, createDbMiddleware } from '@kagaribi/core';
+import * as schema from '../../../db/schema.js';
+import { Posts } from '../../../db/models/posts.js';
+
+const { initDb } = createDb('postgresql', schema);
 
 const app = new Hono()
   .use('*', createDbMiddleware({ initFn: initDb }))

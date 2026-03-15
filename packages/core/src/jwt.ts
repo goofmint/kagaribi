@@ -175,7 +175,15 @@ export async function createAuthContextHeaders(
   payload: AuthContext,
   sharedSecret: string
 ): Promise<Record<string, string>> {
-  return createContextHeaders(payload, sharedSecret);
+  // Convert AuthContext to a Record with only defined properties
+  const contextData: Record<string, unknown> = {};
+  if (payload.user !== undefined) contextData.user = payload.user;
+  if (payload.jwtPayload !== undefined) contextData.jwtPayload = payload.jwtPayload;
+  if (payload.tokenType !== undefined) contextData.tokenType = payload.tokenType;
+  if (payload.issuedAt !== undefined) contextData.issuedAt = payload.issuedAt;
+  if (payload.expiresAt !== undefined) contextData.expiresAt = payload.expiresAt;
+
+  return createContextHeaders(contextData, sharedSecret);
 }
 
 /**
