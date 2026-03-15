@@ -32,20 +32,9 @@ export function getDbDependencies(dialect: DbDialect, driver?: SqliteDriver): Db
         },
       };
     case 'sqlite': {
-      const sqliteDriver = driver || 'better-sqlite3';
+      const sqliteDriver = driver || 'libsql';
 
       switch (sqliteDriver) {
-        case 'better-sqlite3':
-          return {
-            deps: {
-              'drizzle-orm': '^0.38.0',
-              'better-sqlite3': '^11.0.0',
-            },
-            devDeps: {
-              'drizzle-kit': '^0.30.0',
-              '@types/better-sqlite3': '^7.6.0',
-            },
-          };
         case 'libsql':
           return {
             deps: {
@@ -142,18 +131,9 @@ const { initDb, getDb } = createDbHelper((url) => drizzle(url, { schema }));
 export { initDb, getDb, schema };
 `;
     case 'sqlite': {
-      const sqliteDriver = driver || 'better-sqlite3';
+      const sqliteDriver = driver || 'libsql';
 
       switch (sqliteDriver) {
-        case 'better-sqlite3':
-          return `import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { createDbHelper } from '@kagaribi/core';
-import * as schema from './schema.js';
-
-const { initDb, getDb } = createDbHelper((url) => drizzle(url, { schema }));
-
-export { initDb, getDb, schema };
-`;
         case 'libsql':
           return `import { drizzle } from 'drizzle-orm/libsql';
 import { createDbHelper } from '@kagaribi/core';
@@ -262,15 +242,9 @@ DATABASE_URL=postgresql://user:password@localhost:5432/mydb
 DATABASE_URL=mysql://user:password@localhost:3306/mydb
 `;
     case 'sqlite': {
-      const sqliteDriver = driver || 'better-sqlite3';
+      const sqliteDriver = driver || 'libsql';
 
       switch (sqliteDriver) {
-        case 'better-sqlite3':
-          return `# Database connection (SQLite file path)
-DATABASE_URL=sqlite.db
-# または file: プロトコル
-# DATABASE_URL=file:./data/sqlite.db
-`;
         case 'libsql':
           return `# Database connection
 # ローカル SQLite ファイル
@@ -314,11 +288,9 @@ export function getDbExternals(dialect: DbDialect, driver?: SqliteDriver): strin
     case 'mysql':
       return ['mysql2'];
     case 'sqlite': {
-      const sqliteDriver = driver || 'better-sqlite3';
+      const sqliteDriver = driver || 'libsql';
 
       switch (sqliteDriver) {
-        case 'better-sqlite3':
-          return ['better-sqlite3'];
         case 'libsql':
           return ['@libsql/client'];
         case 'd1':

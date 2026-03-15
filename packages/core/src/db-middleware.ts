@@ -93,9 +93,14 @@ export function createDbMiddleware<TSource = string>(
       }
     }
 
-    if (source !== undefined) {
-      initFn(source);
+    if (source === undefined) {
+      const context = isBinding ? 'c.env' : 'process.env or c.env';
+      throw new Error(
+        `Database source not found: ${envVarName} is not set in ${context}`
+      );
     }
+
+    initFn(source);
 
     await next();
   };
