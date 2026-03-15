@@ -214,7 +214,7 @@ export function initGlobalDb<TDbInstance = any, TSource = string>(
  * }
  * ```
  */
-export function getGlobalDb<TDbInstance = any, TSource = string>(): {
+export function getGlobalDb<TDbInstance = unknown, TSource = string>(): {
   initDb: (source: TSource) => void;
   getDb: () => TDbInstance;
 } {
@@ -223,5 +223,5 @@ export function getGlobalDb<TDbInstance = any, TSource = string>(): {
       'Global database not initialized. Call initGlobalDb() in your package before using model helpers.'
     );
   }
-  return globalDbInstance as { initDb: (source: TSource) => void; getDb: () => TDbInstance };
+  return globalDbInstance.helper as { initDb: (source: TSource) => void; getDb: () => TDbInstance };
 }
