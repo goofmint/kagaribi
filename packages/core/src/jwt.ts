@@ -175,7 +175,7 @@ export async function createAuthContextHeaders(
   payload: AuthContext,
   sharedSecret: string
 ): Promise<Record<string, string>> {
-  return createContextHeaders(payload, sharedSecret);
+  return createContextHeaders(payload as Record<string, unknown>, sharedSecret);
 }
 
 /**

@@ -48,7 +48,7 @@ export {
 export { kagaribiParamsMiddleware } from './params.js';
 
 // 環境変数ユーティリティ
-export { requireEnv, createEnvMiddleware } from './utils/env.js';
+export { requireEnv } from './utils/env.js';
 
 // JWT 認証統合
 export {
@@ -101,6 +101,12 @@ export type { DbMiddlewareOptions } from './db-middleware.js';
 
 // DB ヘルパー
 export { createDbHelper } from './db-helper.js';
+
+// DB ファクトリー
+export { createDb, initGlobalDb, getGlobalDb } from './db-factory.js';
+
+// Model ベースクラス
+export { ModelBase } from './model-base.js';
 
 // シェル実行
 export { exec } from './build/exec.js';

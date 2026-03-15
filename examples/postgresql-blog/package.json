@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:db": "tsc db/index.ts db/schema.ts --outDir db --module ES2022 --target ES2022 --moduleResolution bundler --skipLibCheck",
+    "build:db": "tsc db/schema.ts db/models/*.ts --outDir db --module ES2022 --target ES2022 --moduleResolution bundler --skipLibCheck",
     "dev": "pnpm run build:db && kagaribi dev",
+    "test": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
@@ -20,6 +21,8 @@
   "devDependencies": {
     "typescript": "^5.0.0",
     "drizzle-kit": "^0.30.0",
-    "@types/pg": "^8.11.0"
+    "@types/pg": "^8.11.0",
+    "vitest": "^2.0.0",
+    "dotenv": "^16.0.0"
   }
 }

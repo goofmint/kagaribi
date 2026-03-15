@@ -4,6 +4,7 @@ export default defineConfig({
   packages: {
     root: { target: 'node' },
     posts: { colocateWith: 'root' },
+    users: { colocateWith: 'root' },
   },
   environments: {
     development: {

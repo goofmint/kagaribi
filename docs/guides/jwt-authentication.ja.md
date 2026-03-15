@@ -201,23 +201,16 @@ app.get('/api/protected/profile', (c) => {
 ### 環境変数から JWT シークレットを取得
 
 ```typescript
-import { jwt, requireEnv, createEnvMiddleware } from '@kagaribi/core';
+import { jwt, requireEnv } from '@kagaribi/core';
 
 // 環境変数を検証
 const JWT_SECRET = requireEnv('JWT_SECRET');
 
-// Node.js 環境では c.env に設定
-const envMiddleware = createEnvMiddleware({ JWT_SECRET });
-app.use('*', envMiddleware);
-
 // JWT ミドルウェアで検証
-app.use('/api/*', async (c, next) => {
-  const jwtMiddleware = jwt({
-    secret: c.env.JWT_SECRET,
-    alg: 'HS256',
-  });
-  return jwtMiddleware(c, next);
-});
+app.use('/api/*', jwt({
+  secret: JWT_SECRET,
+  alg: 'HS256',
+}));
 ```
 
 ### カスタム検証
@@ -383,14 +376,13 @@ const SHARED_SECRET = requireEnv('SHARED_SECRET');
 ### Node.js での環境変数設定
 
 ```typescript
-import { createEnvMiddleware } from '@kagaribi/core';
+import { requireEnv } from '@kagaribi/core';
 
-const envMiddleware = createEnvMiddleware({
-  JWT_SECRET: process.env.JWT_SECRET!,
-  SHARED_SECRET: process.env.SHARED_SECRET!,
-});
+// 環境変数を取得して検証
+const JWT_SECRET = requireEnv('JWT_SECRET');
+const SHARED_SECRET = requireEnv('SHARED_SECRET');
 
-app.use('*', envMiddleware);
+// これらの変数を必要な場所で直接使用
 ```
 
 ### Cloudflare Workers での環境変数

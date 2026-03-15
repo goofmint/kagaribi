@@ -81,7 +81,6 @@ All protected endpoints require `Authorization: Bearer <token>` header.
    - `JWT_DEFAULTS` - Default token configuration
    - `createTokenPair()` - Generate token pairs easily
    - `requireEnv()` - Environment variable validation
-   - `createEnvMiddleware()` - Node.js to Hono env adapter
 
 ## Deployment
 

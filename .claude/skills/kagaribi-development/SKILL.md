@@ -37,6 +37,78 @@ Each package is independent in these aspects:
 - Own deployment target
 - Dependencies on other packages are type definitions only (not implementation)
 
+## 🚨 CRITICAL RULES
+
+### NEVER Write HTML Template Literals in .ts Files
+
+**ABSOLUTE RULE: .ts files MUST NOT contain HTML template literals. ALWAYS use .tsx files with React/JSX components for views.**
+
+❌ **ABSOLUTELY FORBIDDEN:**
+```typescript
+// ❌ NEVER DO THIS - HTML template literals in .ts files
+import { html } from 'hono/html';
+
+app.get('/', (c) => {
+  return c.html(html`<html><body>...</body></html>`);
+});
+
+// ❌ ALSO FORBIDDEN - Any HTML strings in .ts files
+app.get('/page', (c) => {
+  return c.html(`
+    <html>
+      <body><h1>Title</h1></body>
+    </html>
+  `);
+});
+```
+
+✅ **CORRECT APPROACHES:**
+
+**For APIs - Return JSON in .ts files:**
+```typescript
+// ✅ .ts files for JSON APIs
+app.get('/api/users', (c) => {
+  return c.json({ users: [] });
+});
+```
+
+**For Views - Use .tsx files with React/JSX:**
+```tsx
+// ✅ Create views/HomePage.tsx
+import { FC } from 'hono/jsx';
+
+export const HomePage: FC = () => {
+  return (
+    <html>
+      <body>
+        <h1>Welcome</h1>
+      </body>
+    </html>
+  );
+};
+```
+
+```tsx
+// ✅ Use .tsx for routes that render views
+// src/index.tsx (note: .tsx extension)
+import { Hono } from 'hono';
+import { HomePage } from '../views/HomePage';
+
+const app = new Hono()
+  .get('/', (c) => c.html(<HomePage />));
+
+export default app;
+```
+
+**Why This Rule Exists:**
+- HTML template literals have NO type safety
+- NO syntax highlighting or tooling support
+- Hard to maintain and prone to XSS vulnerabilities
+- TSX provides full type checking and IDE support
+- Enforces separation: logic (.ts/.tsx) vs presentation (.tsx components)
+
+**See:** [Views Guide](../../../docs/guides/views.md) for detailed documentation.
+
 ## Core Commands
 
 ### Create New Package
@@ -79,7 +151,7 @@ All packages run in a single process with automatic routing.
 ### Generate Database Models
 
 ```bash
-npx kagaribi model new <table> <field:type>... [--db postgresql|mysql]
+npx kagaribi model new <table> <field:type>... [--db postgresql|mysql|sqlite] [--scope <packagePath>]
 ```
 
 **Supported field types:** `string`, `integer`, `boolean`, `timestamp`, `text`
@@ -94,18 +166,42 @@ npx kagaribi model new products name:string price:integer stock:integer
 
 # Auto-detect database dialect from config
 npx kagaribi model new comments postId:integer userId:integer body:text
+
+# Generate model in specific package's db directory (scoped database)
+npx kagaribi model new users name:string email:string --scope packages/auth
 ```
 
-**What gets created:**
+**What gets created (root db directory):**
 - Appends table definition to `db/schema.ts`
 - Generates `db/models/<table>.ts` with helper functions
 - Updates `db/models/index.ts` to export the model
 
+**With --scope flag (per-package db directory):**
+- Appends table definition to `<scope>/db/schema.ts`
+- Generates `<scope>/db/models/<table>.ts` with helper functions
+- Updates `<scope>/db/models/index.ts` to export the model
+
 **After generation:**
 ```bash
-pnpm run db:generate  # Create migration files
-pnpm run db:migrate   # Apply to database
+npx drizzle-kit generate  # Create migration files
+npx drizzle-kit push      # Apply to database
 ```
+
+**Database Access Patterns:**
+
+Kagaribi supports two ways to access database:
+
+1. **Shared Database with Model Helpers** (default when using `kagaribi model new`)
+   - Uses generated helper functions: `findAll()`, `findById()`, `create()`, `remove()`
+   - Best for shared logic across multiple packages
+   - Example: `import * as Posts from '../../../db/models/posts.js'`
+
+2. **Per-Package Database Access** (direct Drizzle ORM)
+   - Uses `getDb()` and `schema` directly in package code
+   - Maximum flexibility for custom queries
+   - Example: `const db = getDb(); await db.select().from(schema.users)`
+
+See [Database Integration Guide](../../../docs/database.md) for detailed comparison and best practices.
 
 ## Package Independence
 
@@ -199,8 +295,10 @@ export default app;
 
 ```typescript
 import { Hono } from 'hono';
-import { createDbMiddleware } from '@kagaribi/core';
-import { getDb, initDb, schema } from '../../../db/index.js';
+import { createDb, createDbMiddleware } from '@kagaribi/core';
+import * as schema from '../../../db/schema.js';
+
+const { initDb, getDb } = createDb('postgresql', schema);
 
 const app = new Hono()
   // Initialize database connection
@@ -236,27 +334,15 @@ export default app;
 
 D1 uses a binding object instead of a URL connection string, so set `isBinding: true`.
 
-**`db/index.ts` (for D1)**
-```typescript
-import { drizzle } from 'drizzle-orm/d1';
-import { createDbHelper } from '@kagaribi/core';
-import * as schema from './schema.js';
-
-const { initDb, getDb } = createDbHelper<ReturnType<typeof drizzle>, D1Database>(
-  (d1) => drizzle(d1, { schema })
-);
-
-export { initDb, getDb, schema };
-```
-
-**Package code**
 ```typescript
 import { Hono } from 'hono';
-import { createDbMiddleware } from '@kagaribi/core';
-import { getDb, initDb, schema } from '../../../db/index.js';
+import { createDb, createDbMiddleware } from '@kagaribi/core';
+import * as schema from '../../../db/schema.js';
 
 // Bindings type definition
 type Env = { Bindings: { DB: D1Database } };
+
+const { initDb, getDb } = createDb('sqlite', schema, { driver: 'd1' });
 
 const app = new Hono<Env>()
   .use('*', createDbMiddleware<D1Database>({

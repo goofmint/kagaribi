@@ -29,6 +29,66 @@ The root package is the **only special package** with three key responsibilities
    - References `url` field in `kagaribi.config.ts`
    - RPC client automatically connects to appropriate URLs
 
+### 🚨 CRITICAL RULE: No HTML Template Literals in .ts Files
+
+**ABSOLUTE RULE: .ts files MUST NEVER contain HTML template literals. ALWAYS use .tsx files with React/JSX components for views.**
+
+❌ **ABSOLUTELY FORBIDDEN:**
+```typescript
+// ❌ NEVER write HTML template literals in .ts files
+import { html } from 'hono/html';
+app.get('/', (c) => c.html(html`<html>...</html>`));
+
+// ❌ ALSO FORBIDDEN - Any HTML strings
+app.get('/page', (c) => {
+  return c.html(`<html><body><h1>Title</h1></body></html>`);
+});
+```
+
+✅ **CORRECT OPTIONS:**
+
+**For APIs - Use .ts files:**
+```typescript
+// ✅ .ts files for JSON APIs
+app.get('/api/data', (c) => c.json({ message: 'API response' }));
+```
+
+**For views - Use .tsx files:**
+```tsx
+// ✅ Create views/HomePage.tsx
+import { FC } from 'hono/jsx';
+
+export const HomePage: FC = () => {
+  return (
+    <html>
+      <body>
+        <h1>Home</h1>
+      </body>
+    </html>
+  );
+};
+```
+
+```tsx
+// ✅ Use .tsx for routes that render views
+// src/index.tsx (note: .tsx extension)
+import { Hono } from 'hono';
+import { HomePage } from '../views/HomePage';
+
+const app = new Hono()
+  .get('/', (c) => c.html(<HomePage />));
+
+export default app;
+```
+
+**Why This Rule Exists:**
+- NO type safety with template literals
+- NO syntax highlighting or tooling
+- Prone to XSS vulnerabilities
+- TSX provides full type checking and IDE support
+
+**See:** [Views Guide](../../../docs/guides/views.md) for detailed documentation.
+
 ### Principles When Creating New Packages
 
 1. **Maintain Independence**
@@ -95,10 +155,10 @@ When a user wants to create a new project, gather these requirements:
 ## Command Syntax
 
 ```bash
-npx kagaribi init <name> [--db postgresql|mysql|sqlite] [--driver better-sqlite3|libsql|d1|sqlite-cloud] [--node|--cloudflare|--lambda|--cloudrun|--deno]
+npx kagaribi init <name> [--db postgresql|mysql|sqlite] [--driver libsql|d1|sqlite-cloud] [--node|--cloudflare|--lambda|--cloudrun|--deno]
 ```
 
-**`--driver` is only valid when `--db sqlite` is used. The default when omitted is `better-sqlite3`.**
+**`--driver` is only valid when `--db sqlite` is used. The default when omitted is `libsql`.**
 
 **Examples:**
 ```bash
