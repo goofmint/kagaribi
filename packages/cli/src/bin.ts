@@ -208,7 +208,14 @@ function getTargetFlag(): DeployTarget | undefined {
             continue;
           }
           if (arg === '--scope') {
-            // Skip --scope and its value
+            // Verify that the next token exists and is not another flag
+            const nextArg = args[i + 1];
+            if (!nextArg || nextArg.startsWith('-')) {
+              console.error('Error: --scope flag requires a value (package path)');
+              console.error('Usage: kagaribi model new <table-name> [field:type ...] [--db postgresql|mysql] [--scope <packagePath>]');
+              process.exit(1);
+            }
+            // Skip --scope and its value (next element)
             i++;
             continue;
           }

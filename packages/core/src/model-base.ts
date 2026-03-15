@@ -30,7 +30,7 @@ export class ModelBase {
    *
    * @throws Error if global database is not initialized
    */
-  protected static getDb<T = any>(): T {
+  protected static getDb<T = unknown>(): T {
     const { getDb } = getGlobalDb<T>();
     return getDb();
   }

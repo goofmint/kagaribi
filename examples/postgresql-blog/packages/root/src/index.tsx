@@ -19,16 +19,27 @@ const app = new Hono()
     return c.json({ status: 'healthy', package: 'root' });
   })
   .get('/dashboard', async (c) => {
-    const posts = getClient<PostsApp>('posts');
-    const res = await posts.index.$get();
-    const allPosts = (await res.json()) as Array<{
-      id: number;
-      title: string;
-      content: string | null;
-      createdAt: string;
-    }>;
+    try {
+      const posts = getClient<PostsApp>('posts');
+      const res = await posts.index.$get();
 
-    return c.html(<Dashboard posts={allPosts} />);
+      if (!res.ok) {
+        console.error('Failed to fetch posts:', res.status, res.statusText);
+        return c.html(<Dashboard posts={[]} error="Failed to load posts" />);
+      }
+
+      const allPosts = (await res.json()) as Array<{
+        id: number;
+        title: string;
+        content: string | null;
+        createdAt: string;
+      }>;
+
+      return c.html(<Dashboard posts={allPosts} />);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      return c.html(<Dashboard posts={[]} error="An error occurred while loading posts" />);
+    }
   });
 
 export type RootApp = typeof app;

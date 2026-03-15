@@ -9,9 +9,10 @@ interface Post {
 
 interface DashboardProps {
   posts: Post[];
+  error?: string;
 }
 
-export const Dashboard: FC<DashboardProps> = ({ posts }) => {
+export const Dashboard: FC<DashboardProps> = ({ posts, error }) => {
   return (
     <html>
       <head>
@@ -61,6 +62,14 @@ export const Dashboard: FC<DashboardProps> = ({ posts }) => {
           a:hover {
             text-decoration: underline;
           }
+          .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+          }
         `}</style>
       </head>
       <body>
@@ -73,6 +82,12 @@ export const Dashboard: FC<DashboardProps> = ({ posts }) => {
           </p>
           <p><a href="/">← Back to home</a></p>
         </div>
+
+        {error && (
+          <div class="error">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
 
         <h2>All Posts ({posts.length} total)</h2>
 

@@ -68,8 +68,8 @@ export function kagaribiContextMiddleware(
  * Honoコンテキストからリモート転送用のヘッダーを生成するユーティリティ。
  * プロキシミドルウェア内で使用する。
  */
-export async function createContextHeaders(
-  contextData: Record<string, unknown>,
+export async function createContextHeaders<T extends Record<string, unknown>>(
+  contextData: T,
   sharedSecret: string
 ): Promise<Record<string, string>> {
   const contextJson = JSON.stringify(contextData);

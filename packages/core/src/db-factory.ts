@@ -6,8 +6,12 @@ const require = createRequire(import.meta.url);
 
 /**
  * Global database instance for shared access across model helpers and packages.
+ * Stores both the helper and its configuration for validation.
  */
-let globalDbInstance: { initDb: (source: any) => void; getDb: () => any } | null = null;
+let globalDbInstance: {
+  helper: { initDb: (source: unknown) => void; getDb: () => unknown };
+  config: { dialect: DbDialect; schema: Record<string, unknown>; driver?: SqliteDriver };
+} | null = null;
 
 /**
  * Create database instance with automatic dialect detection.
@@ -36,15 +40,51 @@ let globalDbInstance: { initDb: (source: any) => void; getDb: () => any } | null
  * const { initDb, getDb } = createDb('sqlite', schema, { driver: 'd1' });
  * ```
  */
-export function createDb<TDbInstance = any, TSource = string>(
+export function createDb<TDbInstance = unknown, TSource = string>(
   dialect: DbDialect,
-  schema: Record<string, any>,
+  schema: Record<string, unknown>,
   options?: {
     driver?: SqliteDriver;
   }
 ): { initDb: (source: TSource) => void; getDb: () => TDbInstance } {
-  // If global instance doesn't exist, create it
-  if (!globalDbInstance) {
+  // If global instance exists, validate configuration
+  if (globalDbInstance) {
+    const { config } = globalDbInstance;
+
+    // Validate dialect match
+    if (config.dialect !== dialect) {
+      throw new Error(
+        `Database configuration mismatch: global instance uses dialect "${config.dialect}" but createDb was called with "${dialect}". ` +
+        `Each application should only call createDb once with consistent configuration.`
+      );
+    }
+
+    // Validate schema match (reference equality check)
+    if (config.schema !== schema) {
+      throw new Error(
+        `Database configuration mismatch: global instance uses a different schema object. ` +
+        `Ensure you're importing the same schema instance across your application.`
+      );
+    }
+
+    // Validate SQLite driver match (if applicable)
+    if (dialect === 'sqlite') {
+      const requestedDriver = options?.driver || 'libsql';
+      const configDriver = config.driver || 'libsql';
+      if (requestedDriver !== configDriver) {
+        throw new Error(
+          `Database configuration mismatch: global instance uses SQLite driver "${configDriver}" but createDb was called with "${requestedDriver}". ` +
+          `Use consistent driver configuration across your application.`
+        );
+      }
+    }
+
+    // Configuration matches, return existing instance
+    return globalDbInstance.helper as { initDb: (source: TSource) => void; getDb: () => TDbInstance };
+  }
+
+  // Global instance doesn't exist, create it
+  {
     let helper: { initDb: (source: TSource) => void; getDb: () => TDbInstance };
 
     switch (dialect) {
@@ -107,12 +147,17 @@ export function createDb<TDbInstance = any, TSource = string>(
         throw new Error(`Unsupported database dialect: ${dialect}`);
     }
 
-    // Set global instance
-    globalDbInstance = helper;
+    // Set global instance with configuration
+    globalDbInstance = {
+      helper,
+      config: {
+        dialect,
+        schema,
+        driver: options?.driver,
+      },
+    };
     return helper;
   }
-
-  return globalDbInstance as { initDb: (source: TSource) => void; getDb: () => TDbInstance };
 }
 
 /**

@@ -608,4 +608,4 @@ See working examples:
 
 - [Drizzle ORM Documentation](https://orm.drizzle.team/)
 - [PostgreSQL Blog Example](../examples/postgresql-blog/CLAUDE.md)
-- [Kagaribi Development Skill](.claude/skills/kagaribi-development/SKILL.md)
+- [Kagaribi Development Skill](../.claude/skills/kagaribi-development/SKILL.md)

@@ -54,7 +54,7 @@ app.get('/users/:id', async (c) => {
 
 ### File Location
 
-```
+```text
 db/
   models/
     users.ts
@@ -238,6 +238,8 @@ export class Posts extends ModelBase {
 ### Pagination
 
 ```typescript
+import { sql } from 'drizzle-orm';
+
 export class Users extends ModelBase {
   /**
    * Get paginated users
@@ -271,7 +273,7 @@ export class Users extends ModelBase {
 ### Search
 
 ```typescript
-import { like } from 'drizzle-orm';
+import { like, or } from 'drizzle-orm';
 
 export class Posts extends ModelBase {
   /**
@@ -294,6 +296,8 @@ export class Posts extends ModelBase {
 ### Soft Delete
 
 ```typescript
+import { eq, isNull } from 'drizzle-orm';
+
 export class Users extends ModelBase {
   /**
    * Soft delete a user (set deleted_at timestamp)
@@ -398,16 +402,12 @@ export default app;
 
 ```typescript
 // db/models/__tests__/users.test.ts
-import { describe, it, expect, beforeAll } from 'vitest';
-import { createDb } from '@kagaribi/core';
-import * as schema from '../../schema.js';
+import { describe, it, expect } from 'vitest';
 import { Users } from '../users.js';
 
-const { initDb } = createDb('postgresql', schema);
-
-beforeAll(() => {
-  initDb(process.env.DATABASE_URL!);
-});
+// Note: Database is initialized automatically via createDbMiddleware in your app.
+// The middleware reads DATABASE_URL from process.env (loaded by dotenv in vitest.config.ts)
+// No need to call initDb() manually in tests.
 
 describe('Users Model', () => {
   it('should create a user', async () => {

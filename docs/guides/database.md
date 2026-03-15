@@ -10,7 +10,7 @@ Kagaribi provides built-in database support through Drizzle ORM with automatic d
 
 - **PostgreSQL** - Full support with automatic pg driver selection
 - **MySQL** - Full support with automatic mysql2 driver selection
-- **SQLite** - Full support with D1 (Cloudflare Workers) or better-sqlite3 (Node.js)
+- **SQLite** - Full support with D1 (Cloudflare Workers) or libsql (Node.js default, recommended). better-sqlite3 is also supported as an alternative if explicitly chosen
 
 ## Basic Setup
 
@@ -248,7 +248,7 @@ class Users extends ModelBase {
 | Environment Variables | `process.env` | `c.env` (context) |
 | PostgreSQL Driver | `pg` | Hyperdrive/TCP |
 | MySQL Driver | `mysql2` | MySQL TCP |
-| SQLite Driver | `better-sqlite3` | D1 Binding |
+| SQLite Driver | `libsql` (default) or `better-sqlite3` | D1 Binding |
 | Middleware | `createDbMiddleware` | `createDbMiddleware` |
 
 `createDbMiddleware` handles these differences automatically, so you don't need platform-specific code.
@@ -303,12 +303,16 @@ const app = new Hono()
 
 **Solution:**
 - Create `.env` file with `DATABASE_URL`
-- For tests, ensure `vitest.config.ts` loads dotenv:
+- `createDbMiddleware` automatically reads environment variables:
+  - In Node.js: reads from `process.env`
+  - In Cloudflare Workers: reads from `c.env`
+- For tests, load `.env` in `vitest.config.ts`:
 
 ```typescript
 import { defineConfig } from 'vitest/config';
 import { config } from 'dotenv';
 
+// Load .env for tests - createDbMiddleware will use process.env
 config();
 
 export default defineConfig({
@@ -318,6 +322,8 @@ export default defineConfig({
   },
 });
 ```
+
+**Note:** Tests use `createDbMiddleware` which reads `process.env.DATABASE_URL` automatically after dotenv loads it. Do not call `initDb(process.env.DATABASE_URL!)` directly in test code.
 
 ## Next Steps
 
